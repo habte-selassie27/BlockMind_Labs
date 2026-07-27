@@ -1,4 +1,4 @@
-FROM rust:1.80-slim as builder
+FROM rust:1.80-slim AS builder
 WORKDIR /app
 COPY apps/wallet-signer/Cargo.toml ./
 RUN mkdir src && echo "fn main() {}" > src/main.rs && cargo build --release
