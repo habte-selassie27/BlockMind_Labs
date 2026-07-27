@@ -10,6 +10,11 @@ services:
       - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U blockmind"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
 
   mongo:
     image: mongo:7
@@ -17,6 +22,11 @@ services:
       - "27017:27017"
     volumes:
       - mongo_data:/data/db
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh --quiet
+      interval: 5s
+      timeout: 3s
+      retries: 5
 
   redis:
     image: redis:7
@@ -24,6 +34,11 @@ services:
       - "6379:6379"
     volumes:
       - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
 
   weaviate:
     image: semitechnologies/weaviate:latest
@@ -36,7 +51,17 @@ services:
       PERSISTENCE_DATA_PATH: /var/lib/weaviate
       DEFAULT_VECTORIZER_MODULE: none
 
-  # ── Services ─────────────────────────────────────────────────
+  # ── Frontend ─────────────────────────────────────────────────
+  chat-pwa:
+    build:
+      context: .
+      dockerfile: apps/chat-pwa/Dockerfile
+    ports:
+      - "80:80"
+    depends_on:
+      - api-gateway
+
+  # ── Backend Services ────────────────────────────────────────
   api-gateway:
     build:
       context: .
@@ -54,7 +79,8 @@ services:
       - REDIS_URL=redis://redis:6379
       - JWT_SECRET=${JWT_SECRET:-dev-jwt-secret-change-in-prod}
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
 
   intent-service:
     build:
@@ -67,8 +93,10 @@ services:
       - MEMORY_SERVICE_URL=http://memory-service:8005
       - REDIS_URL=redis://redis:6379
     depends_on:
-      - redis
-      - mongo
+      redis:
+        condition: service_healthy
+      mongo:
+        condition: service_healthy
 
   agent-runtime:
     build:
@@ -83,12 +111,14 @@ services:
       - MEMORY_SERVICE_URL=http://memory-service:8005
       - WEB3_MIDDLEWARE_URL=http://web3-middleware:8003
       - REDIS_URL=redis://redis:6379
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - TOGETHER_API_KEY=${TOGETHER_API_KEY}
+      - GROQ_API_KEY=${GROQ_API_KEY}
     depends_on:
-      - intent-service
-      - memory-service
-      - web3-middleware
+      intent-service:
+        condition: service_started
+      memory-service:
+        condition: service_started
+      web3-middleware:
+        condition: service_started
 
   web3-middleware:
     build:
@@ -103,8 +133,10 @@ services:
       - GIWA_RPC_URL=${GIWA_RPC_URL:-https://sepolia-rpc.giwa.io}
       - REDIS_URL=redis://redis:6379
     depends_on:
-      - wallet-signer
-      - redis
+      wallet-signer:
+        condition: service_started
+      redis:
+        condition: service_healthy
 
   wallet-signer:
     build:
@@ -117,7 +149,6 @@ services:
       - KEY_STORE_PATH=/data/keys
     volumes:
       - signer_keys:/data/keys
-    # Isolated network — no public internet access
     networks:
       - internal
 
@@ -134,10 +165,14 @@ services:
       - WEAVIATE_URL=http://weaviate:8080
       - POSTGRES_URL=postgresql://blockmind:blockmind_dev@postgres:5432/blockmind
     depends_on:
-      - mongo
-      - redis
-      - weaviate
-      - postgres
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      weaviate:
+        condition: service_started
+      postgres:
+        condition: service_healthy
 
   analytics-service:
     build:
@@ -150,7 +185,8 @@ services:
       - GIWA_RPC_URL=${GIWA_RPC_URL:-https://sepolia-rpc.giwa.io}
       - REDIS_URL=redis://redis:6379
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
 
   notification-service:
     build:
@@ -163,7 +199,8 @@ services:
       - PORT=8007
       - REDIS_URL=redis://redis:6379
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
 
   sdk-proxy:
     build:
@@ -177,8 +214,10 @@ services:
       - AGENT_RUNTIME_URL=http://agent-runtime:8002
       - REDIS_URL=redis://redis:6379
     depends_on:
-      - agent-runtime
-      - redis
+      agent-runtime:
+        condition: service_started
+      redis:
+        condition: service_healthy
 
   admin-service:
     build:
@@ -191,7 +230,8 @@ services:
       - PORT=8009
       - POSTGRES_URL=postgresql://blockmind:blockmind_dev@postgres:5432/blockmind
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
 
 volumes:
   postgres_data:
