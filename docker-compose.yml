@@ -1,0 +1,204 @@
+services:
+  # ── Data Stores ──────────────────────────────────────────────
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: blockmind
+      POSTGRES_PASSWORD: blockmind_dev
+      POSTGRES_DB: blockmind
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  mongo:
+    image: mongo:7
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  weaviate:
+    image: semitechnologies/weaviate:latest
+    ports:
+      - "8080:8080"
+      - "50051:50051"
+    environment:
+      QUERY_DEFAULTS_LIMIT: 25
+      AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: "true"
+      PERSISTENCE_DATA_PATH: /var/lib/weaviate
+      DEFAULT_VECTORIZER_MODULE: none
+
+  # ── Services ─────────────────────────────────────────────────
+  api-gateway:
+    build:
+      context: .
+      dockerfile: apps/api-gateway/Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - PORT=3000
+      - INTENT_SERVICE_URL=http://intent-service:8001
+      - AGENT_RUNTIME_URL=http://agent-runtime:8002
+      - WEB3_MIDDLEWARE_URL=http://web3-middleware:8003
+      - ANALYTICS_SERVICE_URL=http://analytics-service:8006
+      - SDK_PROXY_URL=http://sdk-proxy:8008
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=${JWT_SECRET:-dev-jwt-secret-change-in-prod}
+    depends_on:
+      - redis
+
+  intent-service:
+    build:
+      context: .
+      dockerfile: apps/intent-service/Dockerfile
+    ports:
+      - "8001:8001"
+    environment:
+      - ENVIRONMENT=development
+      - MEMORY_SERVICE_URL=http://memory-service:8005
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - redis
+      - mongo
+
+  agent-runtime:
+    build:
+      context: .
+      dockerfile: apps/agent-runtime/Dockerfile
+    ports:
+      - "8002:8002"
+    environment:
+      - NODE_ENV=development
+      - PORT=8002
+      - INTENT_SERVICE_URL=http://intent-service:8001
+      - MEMORY_SERVICE_URL=http://memory-service:8005
+      - WEB3_MIDDLEWARE_URL=http://web3-middleware:8003
+      - REDIS_URL=redis://redis:6379
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - TOGETHER_API_KEY=${TOGETHER_API_KEY}
+    depends_on:
+      - intent-service
+      - memory-service
+      - web3-middleware
+
+  web3-middleware:
+    build:
+      context: .
+      dockerfile: apps/web3-middleware/Dockerfile
+    ports:
+      - "8003:8003"
+    environment:
+      - NODE_ENV=development
+      - PORT=8003
+      - WALLET_SIGNER_URL=http://wallet-signer:8004
+      - GIWA_RPC_URL=${GIWA_RPC_URL:-https://sepolia-rpc.giwa.io}
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - wallet-signer
+      - redis
+
+  wallet-signer:
+    build:
+      context: .
+      dockerfile: apps/wallet-signer/Dockerfile
+    ports:
+      - "8004:8004"
+    environment:
+      - RUST_LOG=info
+      - KEY_STORE_PATH=/data/keys
+    volumes:
+      - signer_keys:/data/keys
+    # Isolated network — no public internet access
+    networks:
+      - internal
+
+  memory-service:
+    build:
+      context: .
+      dockerfile: apps/memory-service/Dockerfile
+    ports:
+      - "8005:8005"
+    environment:
+      - ENVIRONMENT=development
+      - MONGO_URL=mongodb://mongo:27017/blockmind
+      - REDIS_URL=redis://redis:6379
+      - WEAVIATE_URL=http://weaviate:8080
+      - POSTGRES_URL=postgresql://blockmind:blockmind_dev@postgres:5432/blockmind
+    depends_on:
+      - mongo
+      - redis
+      - weaviate
+      - postgres
+
+  analytics-service:
+    build:
+      context: .
+      dockerfile: apps/analytics-service/Dockerfile
+    ports:
+      - "8006:8006"
+    environment:
+      - ENVIRONMENT=development
+      - GIWA_RPC_URL=${GIWA_RPC_URL:-https://sepolia-rpc.giwa.io}
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - redis
+
+  notification-service:
+    build:
+      context: .
+      dockerfile: apps/notification-service/Dockerfile
+    ports:
+      - "8007:8007"
+    environment:
+      - NODE_ENV=development
+      - PORT=8007
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - redis
+
+  sdk-proxy:
+    build:
+      context: .
+      dockerfile: apps/sdk-proxy/Dockerfile
+    ports:
+      - "8008:8008"
+    environment:
+      - NODE_ENV=development
+      - PORT=8008
+      - AGENT_RUNTIME_URL=http://agent-runtime:8002
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - agent-runtime
+      - redis
+
+  admin-service:
+    build:
+      context: .
+      dockerfile: apps/admin-service/Dockerfile
+    ports:
+      - "8009:8009"
+    environment:
+      - NODE_ENV=development
+      - PORT=8009
+      - POSTGRES_URL=postgresql://blockmind:blockmind_dev@postgres:5432/blockmind
+    depends_on:
+      - postgres
+
+volumes:
+  postgres_data:
+  mongo_data:
+  redis_data:
+  signer_keys:
+
+networks:
+  internal:
+    driver: bridge

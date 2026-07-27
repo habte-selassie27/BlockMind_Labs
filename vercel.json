@@ -1,0 +1,64 @@
+{
+  "version": 2,
+  "name": "blockmind-labs",
+  "builds": [
+    {
+      "src": "apps/api-gateway/src/index.ts",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "packages/sdk/src/index.ts",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "apps/chat-pwa/**",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "apps/wallet-extension/**",
+      "use": "@vercel/static"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "apps/api-gateway/src/index.ts"
+    },
+    {
+      "src": "/sdk/(.*)",
+      "dest": "packages/sdk/src/index.ts"
+    },
+    {
+      "src": "/chat/(.*)",
+      "dest": "apps/chat-pwa/index.html"
+    },
+    {
+      "src": "/extension/(.*)",
+      "dest": "apps/wallet-extension/index.html"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/$1"
+    }
+  ],
+  "env": {
+    "NODE_ENV": "production",
+    "TOGETHER_API_KEY": "@together-api-key",
+    "GIWA_RPC_URL": "https://rpc.giwa.io",
+    "REDIS_URL": "@redis-url",
+    "DATABASE_URL": "@database-url",
+    "JWT_SECRET": "@jwt-secret"
+  },
+  "regions": ["iad1"],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "X-Frame-Options", "value": "DENY" },
+        { "key": "X-XSS-Protection", "value": "1; mode=block" },
+        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" }
+      ]
+    }
+  ]
+}

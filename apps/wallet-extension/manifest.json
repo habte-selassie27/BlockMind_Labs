@@ -1,0 +1,34 @@
+{
+  "manifest_version": 3,
+  "name": "Blockmind Wallet",
+  "version": "1.0.0",
+  "description": "AI-powered blockchain assistant for GIWA",
+  "permissions": ["activeTab", "storage"],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icon-16.png",
+      "48": "icon-48.png",
+      "128": "icon-128.png"
+    }
+  },
+  "icons": {
+    "16": "icon-16.png",
+    "48": "icon-48.png",
+    "128": "icon-128.png"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://*.giwa.io/*", "http://localhost:*"],
+      "js": ["injected.js"],
+      "run_at": "document_start"
+    }
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "host_permissions": [
+    "https://sepolia-rpc.giwa.io/*",
+    "https://rpc.giwa.io/*"
+  ]
+}
