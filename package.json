@@ -2,6 +2,7 @@
   "name": "blockmind-labs",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "pnpm@9.15.9",
   "description": "AI infrastructure for Web3 — GIWA ecosystem",
   "scripts": {
     "dev": "turbo dev",
