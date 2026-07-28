@@ -1,3 +1,3 @@
-CONTRACT_ADDRESS=0x7ad3F0bB8a3e145D05c1331Ff9262e40f4198007
-# VERIFIED on GIWA Sepolia explorer
-# https://sepolia-explorer.giwa.io/address/0x7ad3F0bB8a3e145D05c1331Ff9262e40f4198007
+CONTRACT_ADDRESS=0x21c137335F6CEa315B2Dbbe9E0918C5c8bddC0b6
+# VERIFIED - Full-featured with Staking, Fees, DID, Reputation, DAO
+# https://sepolia-explorer.giwa.io/address/0x21c137335F6CEa315B2Dbbe9E0918C5c8bddC0b6
