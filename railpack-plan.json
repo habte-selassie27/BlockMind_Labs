@@ -1,0 +1,3 @@
+{
+  "startCommand": "pnpm --filter @blockmind/notification-service start"
+}
