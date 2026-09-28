@@ -9,13 +9,18 @@ import {
   getSystemHealth,
   getAdminStats,
 } from './store';
+import { requireAdmin } from './auth';
 
-const router = Router();
+const router: Router = Router();
 
-// Health check
+// Health check stays open so orchestrators can probe liveness.
 router.get('/health', (_req: Request, res: Response) => {
   res.json({ status: 'ok', service: 'admin-service' });
 });
+
+// Everything below this line reads or mutates user records and system-wide
+// state, so it requires a signed admin token.
+router.use(requireAdmin);
 
 // System health
 router.get('/system/health', async (_req: Request, res: Response) => {

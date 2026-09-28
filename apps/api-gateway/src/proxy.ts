@@ -22,6 +22,30 @@ const SERVICES: Record<string, ProxyConfig> = {
     upstream: process.env.WEB3_MIDDLEWARE_URL || 'http://localhost:8003',
     timeout: TIMEOUTS.web3_middleware,
   },
+  '/giwa': {
+    upstream: process.env.WEB3_MIDDLEWARE_URL || 'http://localhost:8003',
+    timeout: TIMEOUTS.web3_middleware,
+  },
+  '/bridge': {
+    upstream: process.env.WEB3_MIDDLEWARE_URL || 'http://localhost:8003',
+    timeout: TIMEOUTS.web3_middleware,
+  },
+  '/explorer': {
+    upstream: process.env.WEB3_MIDDLEWARE_URL || 'http://localhost:8003',
+    timeout: TIMEOUTS.web3_middleware,
+  },
+  '/portfolio': {
+    upstream: process.env.WEB3_MIDDLEWARE_URL || 'http://localhost:8003',
+    timeout: TIMEOUTS.web3_middleware,
+  },
+  '/watch': {
+    upstream: process.env.WEB3_MIDDLEWARE_URL || 'http://localhost:8003',
+    timeout: TIMEOUTS.web3_middleware,
+  },
+  '/addressbook': {
+    upstream: process.env.WEB3_MIDDLEWARE_URL || 'http://localhost:8003',
+    timeout: TIMEOUTS.web3_middleware,
+  },
   '/memory': {
     upstream: process.env.MEMORY_SERVICE_URL || 'http://localhost:8005',
     timeout: TIMEOUTS.memory_service,

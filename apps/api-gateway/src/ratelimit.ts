@@ -1,4 +1,4 @@
-import type { FastifyInstance } from 'fastify';
+import type { FastifyInstance, FastifyReply } from 'fastify';
 import type { AuthenticatedRequest } from './auth';
 import { RATE_LIMITS } from './config';
 
