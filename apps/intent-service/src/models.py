@@ -18,6 +18,7 @@ class ParsedIntent(BaseModel):
         "stake",
         "unstake",
         "bridge",
+        "bridge_status",
         "read_balance",
         "read_contract",
         "get_nft",
@@ -26,6 +27,15 @@ class ParsedIntent(BaseModel):
         "gas_estimate",
         "contract_risk_check",
         "explain",
+        "explain_transaction",
+        "explain_address",
+        "debug_transaction",
+        "network_stats",
+        "resolve_identity",
+        "create_identity",
+        "verify_identity",
+        "batch_execute",
+        "discover",
         "unknown",
     ]
     confidence: float = Field(ge=0.0, le=1.0)

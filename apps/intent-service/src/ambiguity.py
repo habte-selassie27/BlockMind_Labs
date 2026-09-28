@@ -43,6 +43,33 @@ _AMBIGUITY_CHECKS: dict[str, list[tuple[str, str]]] = {
         ("contract_address", "Which contract address should I check?"),
     ],
     "explain": [],
+    "explain_transaction": [
+        ("tx_hash", "Which transaction hash should I explain? (paste 0x…)"),
+    ],
+    "explain_address": [
+        ("contract_address", "Which address or contract should I explain?"),
+    ],
+    "debug_transaction": [
+        ("tx_hash", "Which failed transaction should I debug? (paste 0x…)"),
+    ],
+    "network_stats": [],
+    "resolve_identity": [
+        ("up_id", "Which UP ID should I resolve? (e.g., alice.up)"),
+    ],
+    "create_identity": [],
+    "verify_identity": [
+        ("up_id", "Which identity should I verify? (e.g., alice.up)"),
+    ],
+    "bridge": [
+        ("amount", "How much would you like to bridge?"),
+        ("from_chain", "Which source chain? (e.g., Sepolia)"),
+        ("to_chain", "Which destination chain? (e.g., GIWA Sepolia)"),
+    ],
+    "bridge_status": [
+        ("tx_hash", "Which bridge transaction should I check? (paste 0x…)"),
+    ],
+    "batch_execute": [],
+    "discover": [],
 }
 
 
