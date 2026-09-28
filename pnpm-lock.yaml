@@ -21,9 +21,15 @@ importers:
 
   apps/admin-service:
     dependencies:
+      '@types/jsonwebtoken':
+        specifier: ^9.0.0
+        version: 9.0.10
       express:
         specifier: ^4.19.0
         version: 4.22.2
+      jsonwebtoken:
+        specifier: ^9.0.0
+        version: 9.0.3
     devDependencies:
       '@types/express':
         specifier: ^4.17.0
@@ -37,6 +43,9 @@ importers:
       typescript:
         specifier: ^5.5.0
         version: 5.9.3
+      vitest:
+        specifier: ^2.0.0
+        version: 2.1.9(@types/node@20.19.43)(jsdom@30.1.1(@noble/hashes@1.8.0))(terser@5.49.0)
 
   apps/agent-runtime:
     dependencies:
@@ -179,6 +188,9 @@ importers:
       typescript:
         specifier: ^5.5.0
         version: 5.9.3
+      vitest:
+        specifier: ^2.0.0
+        version: 2.1.9(@types/node@20.19.43)(jsdom@30.1.1(@noble/hashes@1.8.0))(terser@5.49.0)
 
   apps/sdk-proxy:
     dependencies:
@@ -195,6 +207,28 @@ importers:
       typescript:
         specifier: ^5.5.0
         version: 5.9.3
+      vitest:
+        specifier: ^2.0.0
+        version: 2.1.9(@types/node@20.19.43)(jsdom@30.1.1(@noble/hashes@1.8.0))(terser@5.49.0)
+
+  apps/wallet-extension:
+    dependencies:
+      '@scure/bip39':
+        specifier: ^1.6.0
+        version: 1.6.0
+      viem:
+        specifier: ^2.55.8
+        version: 2.56.9(typescript@5.9.3)(zod@3.25.76)
+    devDependencies:
+      esbuild:
+        specifier: ^0.28.0
+        version: 0.28.1
+      typescript:
+        specifier: ^5.5.0
+        version: 5.9.3
+      vitest:
+        specifier: ^2.0.0
+        version: 2.1.9(@types/node@20.19.43)(jsdom@30.1.1(@noble/hashes@1.8.0))(terser@5.49.0)
 
   apps/web3-middleware:
     dependencies:

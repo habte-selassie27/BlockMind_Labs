@@ -268,6 +268,7 @@ When given the Implementer's code:
 | wallet-signer | 95% | 90% |
 | api-gateway | 85% | 75% |
 | @blockmind/sdk | 90% | 80% |
+| wallet-extension | 90% | 80% |
 
 ---
 
@@ -287,7 +288,9 @@ SCHEMA COMPLIANCE
 SERVICE BOUNDARY COMPLIANCE
 □ intent-service has zero web3 imports
 □ wallet-signer is only called from web3-middleware
-□ No private key material outside apps/wallet-signer/
+□ No private key material outside apps/wallet-signer/, except user-side keys in the
+   wallet extension per ADR-011 (never transmitted, never persisted unsealed);
+   tests/no-transmission.test.ts must pass
 □ No new service introduced that isn't in §9
 
 API COMPLIANCE
@@ -421,6 +424,19 @@ Run Tester again after the fix. Do not skip back to Reviewer until Tester passes
 - `agent-runtime` → may call `intent-service`, `memory-service`, `web3-middleware` — never `wallet-signer` directly
 - `wallet-signer` → outbound only to approved RPC hostnames — no inbound from public internet
 
+### Clients (not services)
+
+| Client | Folder | Language | Talks to |
+|---|---|---|---|
+| chat-pwa | apps/chat-pwa | React 19 / Vite | api-gateway, Blockmind Wallet via EIP-1193 |
+| wallet-extension | apps/wallet-extension | TypeScript (MV3) | GIWA RPC, Scam Shield API |
+
+- `wallet-extension` is a **client**, not a service. It generates and holds the user's own
+  keys on the user's device (ADR-011) and exposes an EIP-1193 provider to dApps.
+- `wallet-extension` → may call GIWA RPC and the Scam Shield endpoint. It must never transmit
+  key material (§12.5) and must never sign without passing the §12.1–§12.4 gate.
+- Signing is local to the client. No Blockmind service signs a non-custodial user's transaction.
+
 ---
 
 ## 11. Canonical Schemas
@@ -432,9 +448,12 @@ These are the only schemas used in this codebase. No agent may invent alternativ
 class ParsedIntent(BaseModel):
     intent_class: Literal[
         "transfer", "swap", "approve", "stake", "unstake",
-        "bridge", "read_balance", "read_contract", "get_nft",
+        "bridge", "bridge_status", "read_balance", "read_contract", "get_nft",
         "monitor", "portfolio_summary", "gas_estimate",
-        "contract_risk_check", "explain", "unknown"
+        "contract_risk_check", "explain", "explain_transaction",
+        "explain_address", "debug_transaction", "network_stats",
+        "resolve_identity", "create_identity", "verify_identity",
+        "batch_execute", "discover", "unknown"
     ]
     confidence: float
     slots: dict[str, str | float | None]
@@ -511,7 +530,7 @@ These cannot be overridden by any agent, any spec, or any ADR.
 
 4. **Scam Shield before new contracts** — any contract address not in the user's trusted list must be checked through `check_contract_risk` before any interaction is built or submitted.
 
-5. **Key isolation** — private keys exist only in `apps/wallet-signer/`. No other service may import, receive, log, or transmit private key material in any form.
+5. **Key isolation** — private keys exist only in `apps/wallet-signer/`. No other service may import, receive, log, or transmit private key material in any form. **Client-side exception (ADR-011):** the user-side wallet in `apps/wallet-extension/` generates and holds the user's own keys on the user's device, consistent with ADR-006's non-custodial default. Those keys are encrypted at rest, kept in memory only while unlocked, never logged, and never transmitted to any service. This exception does not loosen the rule for server-side code.
 
 6. **No user input in raw SQL** — all database access uses parameterized queries. No string interpolation into SQL from any user-supplied value.
 
@@ -532,6 +551,14 @@ pnpm turbo test
 pnpm --filter=intent-service test
 pnpm --filter=agent-runtime test
 cargo test --manifest-path apps/wallet-signer/Cargo.toml
+
+# Wallet extension (client — build produces the loadable dist/)
+pnpm --filter=@blockmind/wallet-extension build
+pnpm --filter=@blockmind/wallet-extension test
+# Verifies the built dist/ artifacts (provider injection + request round-trip)
+pnpm --filter=@blockmind/wallet-extension smoke
+# Asserts ADR-011 invariant 4 — no key material is transmitted or logged
+pnpm --filter=@blockmind/wallet-extension test -- tests/no-transmission.test.ts
 
 # Run intent accuracy benchmark
 cd apps/intent-service && python tests/benchmarks/intent_accuracy.py
@@ -585,5 +612,6 @@ pnpm turbo build
 | ADR-008 | GIWA as Primary Chain | 2025-07-20 | ✅ Accepted |
 | ADR-009 | Turborepo for Monorepo Tooling | 2025-07-20 | ✅ Accepted |
 | ADR-010 | Mandatory Simulation Before Transaction Submission | 2025-07-20 | ✅ Accepted |
+| ADR-011 | Client-Side Key Custody for the Wallet Extension | 2026-09-28 | ✅ Accepted (ratified by decider) |
 
 *New ADRs go in `docs/adr/ADR-NNN.md` and are logged here.*

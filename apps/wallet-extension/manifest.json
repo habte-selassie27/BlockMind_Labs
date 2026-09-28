@@ -2,33 +2,56 @@
   "manifest_version": 3,
   "name": "Blockmind Wallet",
   "version": "1.0.0",
-  "description": "AI-powered blockchain assistant for GIWA",
-  "permissions": ["activeTab", "storage"],
+  "description": "GIWA-native, non-custodial wallet with built-in simulation, Scam Shield, and approval safeguards.",
+  "minimum_chrome_version": "111",
+  "icons": {
+    "16": "icons/icon-16.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
   "action": {
     "default_popup": "popup.html",
+    "default_title": "Blockmind Wallet",
     "default_icon": {
-      "16": "icon-16.png",
-      "48": "icon-48.png",
-      "128": "icon-128.png"
+      "16": "icons/icon-16.png",
+      "48": "icons/icon-48.png",
+      "128": "icons/icon-128.png"
     }
   },
-  "icons": {
-    "16": "icon-16.png",
-    "48": "icon-48.png",
-    "128": "icon-128.png"
-  },
-  "content_scripts": [
-    {
-      "matches": ["https://*.giwa.io/*", "http://localhost:*"],
-      "js": ["injected.js"],
-      "run_at": "document_start"
-    }
+  "permissions": ["storage", "tabs"],
+  "host_permissions": [
+    "https://sepolia-rpc.giwa.io/*",
+    "https://rpc.giwa.io/*",
+    "https://api.blockmind.ai/*"
   ],
   "background": {
     "service_worker": "background.js"
   },
-  "host_permissions": [
-    "https://sepolia-rpc.giwa.io/*",
-    "https://rpc.giwa.io/*"
+  "content_scripts": [
+    {
+      "matches": [
+        "https://*.giwa.io/*",
+        "https://*.blockmind.ai/*",
+        "https://*.vercel.app/*",
+        "http://localhost/*",
+        "http://127.0.0.1/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_start",
+      "all_frames": false
+    },
+    {
+      "matches": [
+        "https://*.giwa.io/*",
+        "https://*.blockmind.ai/*",
+        "https://*.vercel.app/*",
+        "http://localhost/*",
+        "http://127.0.0.1/*"
+      ],
+      "js": ["inpage.js"],
+      "run_at": "document_start",
+      "world": "MAIN",
+      "all_frames": false
+    }
   ]
 }

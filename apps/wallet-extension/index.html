@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Install Blockmind Wallet — GIWA-native browser wallet</title>
+    <meta
+      name="description"
+      content="Blockmind Wallet is a non-custodial GIWA wallet extension with built-in simulation, Scam Shield, and approval safeguards."
+    />
+    <style>
+      /* Landing page uses the light parchment theme (Design.md), not the dark chat theme.
+         Tokens are inlined so this page is self-contained when served as a static route. */
+      :root {
+        --bg: #faf9f5;
+        --surface: #ffffff;
+        --text: #141413;
+        --text-secondary: #777169;
+        --border: #e5e3dc;
+        --font-body: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        --font-display: Georgia, 'Times New Roman', serif;
+        --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      h1,
+      h2 {
+        font-family: var(--font-display);
+        font-weight: 500;
+        line-height: 1.25;
+      }
+      p {
+        margin: 0;
+      }
+      body {
+        background: var(--bg);
+        color: var(--text);
+        -webkit-font-smoothing: antialiased;
+      }
+      .wrap {
+        max-width: 720px;
+        margin: 0 auto;
+        padding: 64px 24px 96px;
+      }
+      .eyebrow {
+        font-family: var(--font-mono);
+        font-size: 12px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #c15f3c;
+      }
+      h1 {
+        font-size: clamp(30px, 5vw, 44px);
+        margin: 12px 0 16px;
+      }
+      .lede {
+        font-size: 17px;
+        color: var(--text-secondary);
+        max-width: 56ch;
+      }
+      ol {
+        padding-left: 20px;
+      }
+      ol li {
+        margin: 10px 0;
+      }
+      code {
+        font-family: var(--font-mono);
+        font-size: 13px;
+        background: #f2f0e9;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 2px 6px;
+      }
+      pre {
+        background: #141413;
+        color: #faf9f5;
+        border-radius: 12px;
+        padding: 16px 18px;
+        overflow-x: auto;
+        font-family: var(--font-mono);
+        font-size: 12.5px;
+        line-height: 1.7;
+      }
+      section {
+        margin-top: 40px;
+      }
+      h2 {
+        font-size: 20px;
+        margin-bottom: 12px;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 16px;
+        margin-top: 8px;
+      }
+      .card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 18px;
+      }
+      .card h3 {
+        font-family: var(--font-body);
+        font-size: 14px;
+        font-weight: 600;
+        margin-bottom: 6px;
+      }
+      .card p {
+        font-size: 13px;
+        color: var(--text-secondary);
+      }
+      .cta {
+        display: inline-block;
+        margin-top: 28px;
+        background: #c15f3c;
+        color: #fff;
+        text-decoration: none;
+        border-radius: 9999px;
+        padding: 12px 24px;
+        font-size: 15px;
+      }
+      footer {
+        margin-top: 56px;
+        padding-top: 20px;
+        border-top: 1px solid var(--border);
+        font-size: 12px;
+        color: var(--text-secondary);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <p class="eyebrow">Blockmind Wallet</p>
+      <h1>A GIWA-native wallet that shows you what you are signing.</h1>
+      <p class="lede">
+        Non-custodial by design: your keys are generated on your device, encrypted, and never
+        sent anywhere. Every transaction is simulated and screened before you approve it.
+      </p>
+
+      <a class="cta" href="/chat">Open the chat app</a>
+
+      <section>
+        <h2>Install from source</h2>
+        <ol>
+          <li>Build the extension bundle:</li>
+        </ol>
+        <pre>pnpm install --filter @blockmind/wallet-extension
+pnpm --filter=@blockmind/wallet-extension build</pre>
+        <ol start="2">
+          <li>Open <code>chrome://extensions</code> and enable <strong>Developer mode</strong>.</li>
+          <li>Choose <strong>Load unpacked</strong> and select <code>apps/wallet-extension/dist</code>.</li>
+          <li>Reload the chat app — the <strong>Blockmind Wallet</strong> option will connect instead of reporting that the extension is missing.</li>
+        </ol>
+      </section>
+
+      <section>
+        <h2>What it protects you from</h2>
+        <div class="grid">
+          <div class="card">
+            <h3>Silent reverts</h3>
+            <p>Simulation runs before you are asked to approve, and a failing transaction is never signed.</p>
+          </div>
+          <div class="card">
+            <h3>Unlimited approvals</h3>
+            <p>MAX_UINT256 allowances are blocked unless you explicitly opt in and acknowledge the risk.</p>
+          </div>
+          <div class="card">
+            <h3>Unknown contracts</h3>
+            <p>Scam Shield screens each new contract; high-risk targets are refused outright.</p>
+          </div>
+          <div class="card">
+            <h3>Blind signing</h3>
+            <p>Signatures and transactions are decoded into plain language, and opaque payloads require acknowledgement.</p>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <h2>Network</h2>
+        <p class="lede">
+          GIWA Sepolia (chain ID 91342) and GIWA Mainnet (chain ID 9134). Gas is cheap and
+          blocks confirm in about a second.
+        </p>
+      </section>
+
+      <footer>
+        Keys never leave your device. Blockmind cannot recover your funds if you lose your
+        recovery phrase — write it down and keep it offline.
+      </footer>
+    </div>
+  </body>
+</html>
