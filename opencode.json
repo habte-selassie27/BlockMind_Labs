@@ -1,4 +1,40 @@
 {
-  "$schema": "https://opencode.ai/config.schema.json",
-  "model": "xiaomi/mimo-v2.5"
+  "$schema": "https://opencode.ai/config.json",
+
+  "model": "xiaomi/mimo-v2.5",
+  "provider": {
+    "openrouter": {
+      "models": {
+        "stealth/ox-alpha": {
+          "name": "Ox Alpha"
+        }
+      },
+      "options": {
+        "apiKey": "{env:OPENROUTER_API_KEY}"
+      }
+    }
+  },
+
+  "agent": {
+    "architect": {
+      "description": "The Architect - decomposes tasks, writes specs, lists files to create",
+      "mode": "subagent",
+      "model": "deepseek-v4-flash-free",
+      "prompt": "You are the Architect. Read AGENTS.md §4 for your rules. You design. You do not write application code."
+    },
+    "tester": {
+      "description": "The Tester - writes tests, runs them, reports pass/fail + coverage",
+      "mode": "subagent",
+      "model": "nemotron-3-ultra-free",
+      "prompt": "You are the Tester. Read AGENTS.md §6 for your rules. You write tests. You do not write application code."
+    },
+    "reviewer": {
+      "description": "The Reviewer - cross-checks everything against AGENTS.md, has veto power",
+      "mode": "subagent",
+      "model": "big-pickle",
+      "prompt": "You are the Reviewer. Read AGENTS.md §7 for your rules. You audit. You have veto power. You approve or block - nothing else."
+    }
+  },
+
+  "instructions": ["AGENTS.md"]
 }
