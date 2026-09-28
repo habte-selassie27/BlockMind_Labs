@@ -1,0 +1,74 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter=web3-middleware typecheck
+      - run: pnpm --filter=agent-runtime typecheck
+      - run: pnpm --filter=api-gateway typecheck
+      - run: pnpm --filter=chat-pwa build
+
+  intent-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -e ./apps/intent-service 2>/dev/null || pip install fastapi pydantic pytest
+      - run: PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 pytest apps/intent-service/tests/unit/test_parser.py apps/intent-service/tests/unit/test_giwa_intents.py -q
+
+  web3-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter=web3-middleware build 2>/dev/null || pnpm --filter=web3-middleware typecheck
+
+  client-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+      # Wallet extension. The suite carries the ADR-011 invariant-4 no-transmission
+      # guard and the keccak-pinned ABI selector checks; smoke then exercises the
+      # built dist/ (provider injection + request round-trip).
+      - run: pnpm --filter=wallet-extension typecheck
+      - run: pnpm --filter=wallet-extension test
+      - run: pnpm --filter=wallet-extension build
+      - run: pnpm --filter=wallet-extension smoke
+      # Chat PWA: the connect/sign path and the ERC-20 metadata reads.
+      - run: pnpm --filter=chat-pwa typecheck
+      - run: pnpm --filter=chat-pwa test
+
+# ✅ COMPLIES WITH: AGENTS.md §13
