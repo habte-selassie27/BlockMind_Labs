@@ -1,14 +1,19 @@
 import { useState } from 'react';
+import AddressField, { ResolvedWatch } from './AddressField';
+import { addToWatchlist, getRecentAddresses } from '../lib/watchlist';
 
 interface Props {
   open: boolean;
   onClose: () => void;
-  onConnect: (method: 'metamask' | 'walletconnect' | 'blockmind' | 'manual') => Promise<void>;
+  onConnect: (method: 'metamask' | 'walletconnect' | 'blockmind' | 'manual', address?: string) => Promise<void>;
   connecting: boolean;
+  /** Whether the Blockmind Wallet extension is present on this page. */
+  blockmindInstalled?: boolean;
 }
 
-export default function WalletModal({ open, onClose, onConnect, connecting }: Props) {
+export default function WalletModal({ open, onClose, onConnect, connecting, blockmindInstalled = false }: Props) {
   const [manualAddress, setManualAddress] = useState('');
+  const [resolved, setResolved] = useState<ResolvedWatch>({ address: null, ens: null, error: null });
   const [error, setError] = useState('');
   const [step, setStep] = useState<'choose' | 'manual'>('choose');
 
@@ -29,16 +34,26 @@ export default function WalletModal({ open, onClose, onConnect, connecting }: Pr
   };
 
   const handleManualSubmit = async () => {
-    if (!/^0x[a-fA-F0-9]{40}$/.test(manualAddress)) {
-      setError('Invalid address format');
+    if (!resolved.address) {
+      setError(resolved.error || 'Enter a valid 0x address or ENS name');
       return;
     }
     try {
-      await onConnect('manual');
+      await onConnect('manual', resolved.address);
+      setManualAddress('');
+      setResolved({ address: null, ens: null, error: null });
       onClose();
     } catch (err: any) {
       setError(err.message || 'Connection failed');
     }
+  };
+
+  const handleWatchlistOnly = () => {
+    if (!resolved.address) return;
+    addToWatchlist({ address: resolved.address, ens: resolved.ens });
+    setManualAddress('');
+    setResolved({ address: null, ens: null, error: null });
+    onClose();
   };
 
   return (
@@ -135,7 +150,7 @@ export default function WalletModal({ open, onClose, onConnect, connecting }: Pr
               <div style={{ textAlign: 'left' }}>
                 <div style={{ fontWeight: 500 }}>Blockmind Wallet</div>
                 <div style={{ fontSize: 12, color: 'var(--color-text-tertiary)' }}>
-                  GIWA-native wallet extension
+                  {blockmindInstalled ? 'GIWA-native wallet extension' : 'Not detected — install the extension'}
                 </div>
               </div>
               <span style={{ marginLeft: 'auto', color: 'var(--color-text-tertiary)' }}>→</span>
@@ -161,44 +176,51 @@ export default function WalletModal({ open, onClose, onConnect, connecting }: Pr
         ) : (
           <div>
             <div style={{ marginBottom: 'var(--space-3)' }}>
-              <label style={{
-                display: 'block',
-                fontSize: 13,
-                fontWeight: 500,
-                color: 'var(--color-text-secondary)',
-                marginBottom: 'var(--space-2)',
-              }}>
-                Wallet Address
-              </label>
-              <input
-                className="input"
-                type="text"
-                placeholder="0x..."
+              <AddressField
                 value={manualAddress}
-                onChange={(e) => { setManualAddress(e.target.value); setError(''); }}
-                onKeyDown={(e) => e.key === 'Enter' && handleManualSubmit()}
+                onChange={(v) => { setManualAddress(v); setError(''); }}
+                onResolved={(r) => {
+                  setResolved(r);
+                  setError(r.error || '');
+                }}
+                recents={getRecentAddresses()}
+                onPick={(addr) => setManualAddress(addr)}
                 autoFocus
               />
+            </div>
+
+            <div style={{ fontSize: 12, color: 'var(--color-text-tertiary)', marginBottom: 'var(--space-4)', lineHeight: 1.5 }}>
+              View-only: balances, tokens and activity — no keys stored, no signing.
             </div>
 
             <div style={{ display: 'flex', gap: 'var(--space-3)' }}>
               <button
                 className="btn btn-secondary"
                 style={{ flex: 1 }}
-                onClick={() => { setStep('choose'); setManualAddress(''); setError(''); }}
+                onClick={() => { setStep('choose'); setManualAddress(''); setError(''); setResolved({ address: null, ens: null, error: null }); }}
               >
                 ← Back
               </button>
               <button
                 className="btn btn-primary"
-                style={{ flex: 1 }}
+                style={{ flex: 2 }}
                 onClick={handleManualSubmit}
-                disabled={!manualAddress || connecting}
+                disabled={!resolved.address || connecting}
               >
                 {connecting ? <span className="spinner spinner-sm" /> : null}
-                Connect
+                Watch address
               </button>
             </div>
+
+            {resolved.address && (
+              <button
+                className="btn btn-ghost"
+                style={{ width: '100%', justifyContent: 'center', marginTop: 'var(--space-3)', fontSize: 12.5 }}
+                onClick={handleWatchlistOnly}
+              >
+                + Save to watchlist only (keep current view)
+              </button>
+            )}
           </div>
         )}
 

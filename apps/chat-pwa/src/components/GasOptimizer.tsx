@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { getGasPrice, getBlockNumber } from '../lib/giwa-rpc';
+const MIDDLEWARE = (import.meta as any).env.VITE_WEB3_MIDDLEWARE_URL || '/api';
 
 interface GasQuote {
   slow: { gwei: string; time: string; usd: string };
@@ -28,19 +29,32 @@ export default function GasOptimizer({ onDismiss }: Props) {
   useEffect(() => {
     const fetchGas = async () => {
       try {
-        const [prices, block] = await Promise.all([getGasPrice(), getBlockNumber()]);
-
-        const gweiToFloat = (g: string) => parseFloat(g);
-        const slow = gweiToFloat(prices.slow);
-        const fast = gweiToFloat(prices.fast);
+        // Try new GIWA Gas Intelligence endpoint first, fallback to direct RPC
+        let prices: any = null;
+        let block: number | null = null;
+        try {
+          const res = await fetch(`${MIDDLEWARE}/giwa/gas?chain_id=91342`);
+          if (res.ok) {
+            const j = await res.json();
+            prices = { slow: j.slow.gwei, standard: j.standard.gwei, fast: j.fast.gwei, suggestion: j.suggestion, reason: j.reason };
+            block = parseInt(j.chainId ? String(j.chainId) : '0') || null;
+          }
+        } catch {}
+        if (!prices) {
+          const [p, b] = await Promise.all([getGasPrice(), getBlockNumber()]);
+          prices = { ...p, suggestion: parseFloat(p.fast) > parseFloat(p.slow) * 2 ? 'standard' : 'fast', reason: 'GIWA is fast and cheap — standard is plenty' };
+          block = b;
+        } else if (block == null) {
+          try { block = await getBlockNumber(); } catch { block = 0; }
+        }
 
         setGas({
           slow: { gwei: prices.slow, time: '~4s', usd: estimateCostUsd(prices.slow) },
           standard: { gwei: prices.standard, time: '~2s', usd: estimateCostUsd(prices.standard) },
           fast: { gwei: prices.fast, time: '~1s', usd: estimateCostUsd(prices.fast) },
-          suggestion: fast > slow * 2 ? 'standard' : 'fast',
-          reason: 'GIWA is fast and cheap — standard is plenty for most transactions',
-          blockNumber: block,
+          suggestion: (prices.suggestion as any) || 'standard',
+          reason: prices.reason || 'GIWA is fast and cheap — standard is plenty',
+          blockNumber: block || 0,
         });
         setError(null);
       } catch (err) {

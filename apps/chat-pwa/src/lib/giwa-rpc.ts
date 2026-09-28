@@ -79,10 +79,11 @@ export async function getRecentBlocks(count: number = 5): Promise<{ number: numb
 
 // ── ERC-20 Token Queries ───────────────────────────────────────
 
-const ERC20_ABI = {
+// Exported so __tests__/giwa-rpc.test.ts can pin each selector to a computed keccak.
+export const ERC20_ABI = {
   balanceOf: '0x70a08231', // balanceOf(address)
   decimals: '0x313ce567',   // decimals()
-  symbol: '0x95d89e4e',     // symbol()
+  symbol: '0x95d89b41',     // symbol()
   name: '0x06fdde03',       // name()
   totalSupply: '0x18160ddd', // totalSupply()
 };

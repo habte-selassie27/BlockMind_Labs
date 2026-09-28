@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import { getBalance, GIWA_TOKENS, formatUsd, formatTokenAmount, rpcCall } from '../lib/giwa-rpc';
+import { ERC20_ABI, getBalance, GIWA_TOKENS, formatUsd, formatTokenAmount, rpcCall } from '../lib/giwa-rpc';
 import { getTokenPrices, getFallbackPrice } from '../lib/price-feeds';
 import SeoHead from '../components/SeoHead';
 
@@ -82,7 +82,7 @@ export default function Portfolio() {
             try {
               const encoded = token.address.toLowerCase().replace('0x', '').padStart(64, '0');
               const balanceHex: string = await rpcCall('eth_call', [
-                { to: token.address, data: '0x70a08231' + encoded },
+                { to: token.address, data: ERC20_ABI.balanceOf + encoded },
                 'latest',
               ]);
               const balanceRaw = BigInt(balanceHex);

@@ -16,14 +16,17 @@ import TxHistory from './pages/TxHistory';
 import Preferences from './pages/Preferences';
 import AgentTemplates from './pages/AgentTemplates';
 import './tokens.css';
-import './components.css';
+import './animations.css';
 import './layout.css';
+import './components.css';
+import './responsive.css';
 import './landing.css';
 import './pages.css';
 import './docs.css';
 import './corp.css';
 import './features.css';
 import './portfolio.css';
+import './viewonly.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

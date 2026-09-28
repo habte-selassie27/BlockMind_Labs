@@ -1,0 +1,364 @@
+/* View-Only / Watch dashboard — AGENTS.md §2 tokens, dark chat theme */
+
+.vo-panel {
+  width: min(760px, calc(100vw - 32px));
+  max-height: min(88vh, 900px);
+  overflow-y: auto;
+  padding: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.vo-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.vo-risk-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 9999px;
+  border: 1px solid;
+  white-space: nowrap;
+}
+
+.vo-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.vo-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 11px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 9999px;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--chat-border);
+  color: var(--chat-text-secondary);
+  white-space: nowrap;
+  text-decoration: none;
+  transition: all 160ms var(--ease-out);
+}
+
+.vo-btn:hover {
+  border-color: var(--chat-border-hover);
+  color: var(--chat-text-primary);
+}
+
+.vo-qr-row {
+  display: flex;
+  gap: var(--space-5);
+  align-items: center;
+  flex-wrap: wrap;
+  padding: var(--space-4);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--chat-border);
+  border-radius: var(--radius-lg);
+}
+
+.vo-qr svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.vo-chains {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+  gap: 8px;
+}
+
+.vo-chain {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  text-align: left;
+  padding: 10px 12px;
+  background: var(--chat-surface);
+  border: 1px solid var(--chat-border);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  color: var(--chat-text-primary);
+  transition: all 160ms var(--ease-out);
+}
+
+.vo-chain:hover {
+  border-color: var(--chat-border-hover);
+}
+
+.vo-chain.active {
+  border-color: rgba(217, 122, 92, 0.45);
+  background: var(--chat-brand-soft);
+  box-shadow: 0 0 0 1px rgba(217, 122, 92, 0.18);
+}
+
+.vo-chain-top {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--chat-text-secondary);
+}
+
+.vo-chain-amount {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--chat-text-primary);
+}
+
+.vo-chain-usd {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--chat-text-tertiary);
+}
+
+.vo-spark {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-5);
+  flex-wrap: wrap;
+  padding: var(--space-4);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.015) 100%);
+  border: 1px solid var(--chat-border);
+  border-radius: var(--radius-lg);
+}
+
+.vo-section-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--chat-text-faint);
+}
+
+.vo-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--chat-border-soft);
+  border-radius: 9999px;
+  width: fit-content;
+}
+
+.vo-tab {
+  padding: 6px 16px;
+  border-radius: 9999px;
+  border: none;
+  background: transparent;
+  color: var(--chat-text-tertiary);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 160ms var(--ease-out);
+}
+
+.vo-tab.active {
+  background: var(--chat-surface-hover);
+  color: var(--chat-text-primary);
+  box-shadow: inset 0 0 0 1px var(--chat-border);
+}
+
+.vo-tab-body {
+  min-height: 96px;
+}
+
+.vo-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 13px;
+  background: var(--chat-surface);
+  border: 1px solid var(--chat-border);
+  border-radius: var(--radius-lg);
+}
+
+.vo-token-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11.5px;
+  font-weight: 700;
+  font-family: 'JetBrains Mono', monospace;
+  border: 1px solid;
+  flex-shrink: 0;
+}
+
+.vo-mini-badge {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: #F59E0B;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.18);
+  padding: 1px 6px;
+  border-radius: 9999px;
+}
+
+.vo-dir {
+  width: 32px;
+  height: 32px;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.vo-empty {
+  padding: 22px 14px;
+  text-align: center;
+  font-size: 12.5px;
+  color: var(--chat-text-tertiary);
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px dashed var(--chat-border);
+  border-radius: var(--radius-lg);
+  line-height: 1.55;
+}
+
+.vo-nft-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 10px;
+}
+
+.vo-nft {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 10px;
+  background: var(--chat-surface);
+  border: 1px solid var(--chat-border);
+  border-radius: var(--radius-lg);
+}
+
+.vo-nft-art {
+  height: 84px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  font-weight: 800;
+  font-family: 'Space Grotesk', sans-serif;
+  color: var(--chat-text-faint);
+  background:
+    radial-gradient(circle at 30% 25%, rgba(217, 122, 92, 0.35), transparent 55%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02));
+  border: 1px solid var(--chat-border-soft);
+}
+
+.vo-watchlist {
+  border-top: 1px solid var(--chat-border-soft);
+  padding-top: var(--space-4);
+}
+
+.vo-watch-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  background: var(--chat-surface);
+  border: 1px solid var(--chat-border);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: all 140ms var(--ease-out);
+}
+
+.vo-watch-row:hover {
+  border-color: var(--chat-border-hover);
+}
+
+.vo-watch-row.active {
+  border-color: rgba(217, 122, 92, 0.4);
+  background: var(--chat-brand-soft);
+}
+
+.vo-remove {
+  width: 24px;
+  height: 24px;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: var(--chat-text-faint);
+  font-size: 12px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.vo-remove:hover {
+  color: var(--chat-danger);
+  background: rgba(229, 115, 115, 0.1);
+}
+
+.vo-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 9px;
+  font-size: 11.5px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--chat-border);
+  border-radius: 9999px;
+  color: var(--chat-text-secondary);
+  cursor: pointer;
+  transition: all 140ms var(--ease-out);
+}
+
+.vo-chip:hover {
+  border-color: rgba(217, 122, 92, 0.4);
+  color: var(--chat-text-primary);
+}
+
+.vo-scan-frame {
+  position: absolute;
+  inset: 14% 16%;
+  border: 2px solid rgba(217, 122, 92, 0.85);
+  border-radius: 12px;
+  box-shadow: 0 0 0 200vmax rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+}
+
+@media (max-width: 560px) {
+  .vo-panel {
+    padding: var(--space-4);
+    gap: var(--space-4);
+    max-height: 92vh;
+  }
+
+  .vo-spark {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+/* ✅ COMPLIES WITH: AGENTS.md §2 (Claude × ElevenLabs tokens)
+   ✅ SERVICE: chat-pwa
+   ✅ ARCHITECT SPEC: View-Only Address upgrade */

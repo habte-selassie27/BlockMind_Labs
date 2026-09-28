@@ -1,0 +1,149 @@
+/* ═══════════════════════════════════════════════════════════════
+   BLOCKMIND — RESPONSIVE SYSTEM
+   Mobile-first, 480 / 768 / 1024 / 1280 breakpoints
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── MOBILE DRAWER OVERLAY ────────────────────────────────── */
+.mobile-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  backdrop-filter: blur(2px);
+  z-index: 40;
+  animation: fadeIn 180ms var(--ease-out) both;
+}
+.mobile-overlay.open { display: block; }
+
+/* ── HAMBURGER ────────────────────────────────────────────── */
+/* Visible only on <=768 */
+.hamburger {
+  display: none;
+  width: 36px;
+  height: 36px;
+  align-items: center;
+  justify-content: center;
+  background: var(--chat-surface);
+  border: 1px solid var(--chat-border);
+  border-radius: var(--radius-md);
+  color: var(--chat-text-primary);
+  cursor: pointer;
+  transition: background 150ms, border-color 150ms;
+}
+.hamburger:hover { background: var(--chat-surface-hover); border-color: var(--chat-border-strong); }
+.hamburger svg { width: 18px; height: 18px; }
+
+/* ── ≤1280: slightly narrower sidebars ────────────────────── */
+@media (max-width: 1280px) {
+  .sidebar { width: 240px; min-width: 240px; }
+  .context-panel { width: 260px; min-width: 260px; }
+}
+
+/* Utility: hide on mobile */
+@media (max-width: 768px) {
+  .hide-mobile { display: none !important; }
+}
+
+/* ── ≤1024: hide context panel, keep sidebar ──────────────── */
+@media (max-width: 1024px) {
+  .context-panel { display: none; }
+  /* show a toggle button for context where needed */
+  .context-toggle { display: inline-flex !important; }
+  .message-list { padding: 20px; }
+}
+
+/* ── ≤768: drawer mode — sidebar overlays, topbar compact ─── */
+@media (max-width: 768px) {
+  .hamburger { display: inline-flex; }
+
+  .chat-body { position: relative; }
+
+  .sidebar {
+    position: fixed;
+    inset: 0 auto 0 0;
+    width: 280px;
+    max-width: 84vw;
+    z-index: 45;
+    transform: translateX(-100%);
+    transition: transform 280ms var(--ease-emphasized);
+    box-shadow: var(--chat-shadow-float);
+    border-right: 1px solid var(--chat-border);
+    background: var(--chat-bg);
+    overflow-y: auto;
+  }
+  .sidebar.open {
+    transform: translateX(0);
+  }
+
+  .topbar { padding: 0 12px; gap: 8px; height: 52px; }
+  .topbar-center { display: none; } /* hide chain selector on very small */
+  .topbar-right { gap: 8px; }
+  .topbar-status span:last-child { display: none; } /* hide text, keep dot */
+  .chain-badge { padding: 4px 8px; font-size: 10px; }
+
+  .message-list { padding: 16px 14px; gap: 14px; }
+  .msg { max-width: 100%; }
+  .msg-user { max-width: 88%; border-radius: 18px 18px 4px 18px; }
+
+  .input-bar { padding: 12px 14px; }
+  .input-bar-inner { gap: 8px; }
+
+  /* Context as bottom sheet on mobile — when opened as modal */
+  .context-panel.mobile-sheet {
+    display: flex !important;
+    position: fixed;
+    inset: auto 0 0 0;
+    width: 100%;
+    max-height: 72vh;
+    border-left: none;
+    border-top: 1px solid var(--chat-border);
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    z-index: 46;
+    animation: slideUp 300ms var(--ease-emphasized) both;
+    box-shadow: var(--chat-shadow-float);
+  }
+
+  /* Input: stack wallet badge */
+  .input-bar-wallet { display: none; }
+
+  /* Tool grid: stay 2 cols but tighter */
+  .tool-grid { gap: 6px; }
+  .tool-card { padding: 10px; }
+
+  /* Modals: full-width with margin */
+  .modal-content { width: calc(100% - 24px); max-width: none; margin: 12px; }
+}
+
+/* ── ≤480: ultra-compact ──────────────────────────────────── */
+@media (max-width: 480px) {
+  .topbar-logo span { font-size: 15px; }
+  .btn-primary, .btn-secondary { padding: 9px 14px; font-size: 13px; }
+  .input-bar input { padding: 11px 14px; font-size: 14px; }
+  .onboard-wizard { padding: 20px 16px; }
+  .portfolio-snapshot { padding: 12px; }
+}
+
+/* ── ≥768: hide mobile-only elements ─────────────────────── */
+@media (min-width: 769px) {
+  .mobile-only { display: none !important; }
+  .context-toggle { display: none; }
+}
+
+/* ── ≥1024: show context toggle only when panel hidden ────── */
+@media (min-width: 1025px) {
+  .context-toggle { display: none !important; }
+}
+
+/* ── TOUCH TARGETS ────────────────────────────────────────── */
+@media (pointer: coarse) {
+  .btn, .tool-card.clickable, .sidebar-link, .context-tab {
+    min-height: 40px;
+  }
+}
+
+/* ── LANDSCAPE MOBILE ─────────────────────────────────────── */
+@media (max-height: 500px) and (max-width: 768px) {
+  .topbar { height: 48px; }
+  .input-bar { padding: 10px 12px; }
+  .message-list { padding: 12px; }
+}

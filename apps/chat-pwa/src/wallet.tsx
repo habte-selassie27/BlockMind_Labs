@@ -1,4 +1,12 @@
 import { useState, useEffect, useCallback, useRef, createContext, useContext } from 'react';
+import { getChainById } from './lib/chains';
+import {
+  discoverProvider,
+  isBlockmindInstalled,
+  onProviderAvailable,
+  type Eip1193Provider,
+} from './lib/blockmind-provider';
+import { clearViewSession, loadViewSession, saveViewSession } from './lib/watchlist';
 
 interface WalletState {
   address: string | null;
@@ -10,11 +18,15 @@ interface WalletState {
 }
 
 interface WalletContextType extends WalletState {
-  connect: (method: WalletState['provider']) => Promise<void>;
+  /** True when connected as a watched address — no keys, no signing. */
+  isViewOnly: boolean;
+  connect: (method: WalletState['provider'], address?: string) => Promise<void>;
   disconnect: () => void;
   switchChain: (chainId: number) => Promise<void>;
   signAndSend: (tx: Record<string, unknown>) => Promise<string>;
   refreshBalance: () => Promise<void>;
+  /** True when the Blockmind Wallet extension is present on this page. */
+  blockmindInstalled: boolean;
 }
 
 const WalletContext = createContext<WalletContextType | null>(null);
@@ -25,25 +37,46 @@ export function useWallet() {
   return ctx;
 }
 
-const GIWA_CHAINS = {
-  9134: { name: 'GIWA Mainnet', rpc: 'https://rpc.giwa.io', explorer: 'https://explorer.giwa.io' },
-  91342: { name: 'GIWA Sepolia', rpc: 'https://sepolia-rpc.giwa.io', explorer: 'https://sepolia-explorer.giwa.io' },
-};
+export const DEFAULT_CHAIN_ID = 91342;
 
+/** Wei → display string, using BigInt so large balances do not lose precision. */
 function formatBalance(wei: string): string {
-  const eth = parseInt(wei, 16) / 1e18;
-  return eth.toFixed(4);
+  const value = BigInt(wei);
+  const whole = value / 10n ** 18n;
+  const fraction = (value % 10n ** 18n).toString().padStart(18, '0').slice(0, 4);
+  return `${whole}.${fraction}`;
 }
 
 export function WalletProvider({ children }: { children: React.ReactNode }) {
-  const [state, setState] = useState<WalletState>({
-    address: null,
-    chainId: null,
-    balance: null,
-    connected: false,
-    connecting: false,
-    provider: null,
+  const [state, setState] = useState<WalletState>(() => {
+    // Restore a view-only session so reloads keep the watched address
+    const session = loadViewSession();
+    if (session) {
+      return {
+        address: session.address,
+        chainId: session.chainId,
+        balance: null,
+        connected: true,
+        connecting: false,
+        provider: 'manual',
+      };
+    }
+    return {
+      address: null,
+      chainId: null,
+      balance: null,
+      connected: false,
+      connecting: false,
+      provider: null,
+    };
   });
+  // The EIP-1193 provider for whichever wallet is connected (MetaMask or Blockmind).
+  const providerRef = useRef<Eip1193Provider | null>(null);
+
+  // Live extension-presence flag. Kept in state (not a render-time read) because the
+  // MAIN-world script can land after this component's first render — a one-shot check
+  // permanently reported "Not detected" in that case.
+  const [blockmindInstalled, setBlockmindInstalled] = useState(() => isBlockmindInstalled());
 
   const stateRef = useRef(state);
   stateRef.current = state;
@@ -51,8 +84,8 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   const refreshBalance = useCallback(async () => {
     const { address, chainId } = stateRef.current;
     if (!address || !chainId) return;
-    const chain = GIWA_CHAINS[chainId as keyof typeof GIWA_CHAINS];
-    const rpc = chain?.rpc || 'https://sepolia-rpc.giwa.io';
+
+    const rpc = getChainById(chainId)?.rpc ?? 'https://sepolia-rpc.giwa.io';
 
     try {
       const res = await fetch(rpc, {
@@ -71,107 +104,107 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
         setState((prev) => ({ ...prev, balance: bal }));
       }
     } catch {
-      // Silently fail
+      // Balance is best-effort; the rest of the UI stays usable.
     }
   }, []);
 
+  const subscribe = useCallback((provider: Eip1193Provider) => {
+    provider.on?.('accountsChanged', (accounts: string[]) => {
+      setState((prev) => ({
+        ...prev,
+        address: accounts?.[0] ?? null,
+        connected: Boolean(accounts?.[0]),
+      }));
+    });
+
+    provider.on?.('chainChanged', (chainId: string) => {
+      setState((prev) => ({ ...prev, chainId: Number.parseInt(chainId, 16) }));
+    });
+  }, []);
+
   const connectMetaMask = async () => {
-    if (!(window as any).ethereum) {
-      throw new Error('MetaMask not installed. Please install MetaMask or use another method.');
+    const provider = (window as unknown as { ethereum?: Eip1193Provider }).ethereum;
+    if (!provider) {
+      throw new Error('MetaMask not installed. Install MetaMask, or use Blockmind Wallet.');
     }
 
-    const ethereum = (window as any).ethereum;
-    const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
-    const chainId = await ethereum.request({ method: 'eth_chainId' });
+    const accounts = (await provider.request({ method: 'eth_requestAccounts' })) as string[];
+    const chainId = (await provider.request({ method: 'eth_chainId' })) as string;
+
+    providerRef.current = provider;
+    subscribe(provider);
+    clearViewSession();
 
     setState((prev) => ({
       ...prev,
-      address: accounts[0],
-      chainId: parseInt(chainId, 16),
+      address: accounts[0] ?? null,
+      chainId: Number.parseInt(chainId, 16),
       connected: true,
       provider: 'metamask',
     }));
 
-    ethereum.on('accountsChanged', (accounts: string[]) => {
-      setState((prev) => ({
-        ...prev,
-        address: accounts[0] || null,
-        connected: accounts.length > 0,
-      }));
-    });
+    setTimeout(() => refreshBalance(), 100);
+  };
 
-    ethereum.on('chainChanged', (chainId: string) => {
-      setState((prev) => ({ ...prev, chainId: parseInt(chainId, 16) }));
-    });
+  /**
+   * Connects to the Blockmind Wallet extension.
+   *
+   * The extension injects `window.blockmind` at document_start, so detection is a
+   * synchronous check rather than a timed-out message handshake.
+   */
+  const connectBlockmind = async () => {
+    const provider = await discoverProvider();
 
-    // Fetch balance immediately
+    if (!provider) {
+      throw new Error(
+        'Blockmind Wallet extension not detected. Install it, then reload this page — visit /extension/ for setup steps.',
+      );
+    }
+
+    const accounts = (await provider.request({ method: 'eth_requestAccounts' })) as string[];
+    if (!accounts?.length) {
+      throw new Error('Blockmind Wallet returned no accounts. Unlock the extension and try again.');
+    }
+
+    const chainId = (await provider.request({ method: 'eth_chainId' })) as string;
+
+    providerRef.current = provider;
+    subscribe(provider);
+    clearViewSession();
+
+    setState((prev) => ({
+      ...prev,
+      address: accounts[0],
+      chainId: Number.parseInt(chainId, 16),
+      connected: true,
+      provider: 'blockmind',
+      balance: null,
+    }));
+
     setTimeout(() => refreshBalance(), 100);
   };
 
   const connectManual = async (address: string) => {
-    if (!/^0x[a-fA-F0-9]{40}$/.test(address)) {
+    const normalized = address.trim();
+    if (!/^0x[a-fA-F0-9]{40}$/.test(normalized)) {
       throw new Error('Invalid Ethereum address');
     }
 
+    providerRef.current = null;
     setState((prev) => ({
       ...prev,
-      address,
-      chainId: 91342,
+      address: normalized,
+      chainId: DEFAULT_CHAIN_ID,
       connected: true,
       provider: 'manual',
       balance: null,
     }));
+    saveViewSession(normalized, DEFAULT_CHAIN_ID);
 
-    // Fetch balance immediately after connecting
     setTimeout(() => refreshBalance(), 100);
   };
 
-  const connectBlockmind = async () => {
-    // Check if Blockmind wallet extension is installed
-    const ready = await new Promise<boolean>((resolve) => {
-      const timeout = setTimeout(() => resolve(false), 1000);
-      const handler = (event: MessageEvent) => {
-        if (event.data?.type === 'BLOCKMIND_WALLET_READY') {
-          clearTimeout(timeout);
-          window.removeEventListener('message', handler);
-          resolve(true);
-        }
-      };
-      window.addEventListener('message', handler);
-      window.postMessage({ type: 'BLOCKMIND_REQUEST', method: 'eth_requestAccounts' }, '*');
-    });
-
-    if (!ready) {
-      throw new Error('Blockmind Wallet extension not detected. Please install it first.');
-    }
-
-    const accounts = await new Promise<string[]>((resolve) => {
-      const handler = (event: MessageEvent) => {
-        if (event.data?.type === 'BLOCKMIND_RESPONSE' && event.data?.method === 'eth_requestAccounts') {
-          window.removeEventListener('message', handler);
-          resolve(event.data.result || []);
-        }
-      };
-      window.addEventListener('message', handler);
-      window.postMessage({
-        type: 'BLOCKMIND_REQUEST',
-        method: 'eth_requestAccounts',
-        id: Date.now(),
-      }, '*');
-    });
-
-    if (accounts.length > 0) {
-      setState((prev) => ({
-        ...prev,
-        address: accounts[0],
-        chainId: 91342,
-        connected: true,
-        provider: 'blockmind',
-      }));
-    }
-  };
-
-  const connect = async (method: WalletState['provider']) => {
+  const connect = async (method: WalletState['provider'], address?: string) => {
     setState((prev) => ({ ...prev, connecting: true }));
     try {
       switch (method) {
@@ -182,8 +215,8 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
           await connectBlockmind();
           break;
         case 'manual': {
-          const address = prompt('Enter your wallet address (0x...)');
-          if (address) await connectManual(address);
+          if (!address) throw new Error('Address required for view-only mode');
+          await connectManual(address);
           break;
         }
         default:
@@ -195,6 +228,8 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   };
 
   const disconnect = () => {
+    providerRef.current = null;
+    clearViewSession();
     setState({
       address: null,
       chainId: null,
@@ -206,38 +241,63 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   };
 
   const switchChain = async (chainId: number) => {
-    if (state.provider === 'metamask' && (window as any).ethereum) {
+    const provider = providerRef.current;
+    const chain = getChainById(chainId);
+
+    if (provider && (state.provider === 'metamask' || state.provider === 'blockmind')) {
       try {
-        await (window as any).ethereum.request({
+        await provider.request({
           method: 'wallet_switchEthereumChain',
           params: [{ chainId: `0x${chainId.toString(16)}` }],
         });
       } catch {
-        // Chain not added, add it
-        await (window as any).ethereum.request({
-          method: 'wallet_addEthereumChain',
-          params: [{
-            chainId: `0x${chainId.toString(16)}`,
-            chainName: GIWA_CHAINS[chainId as keyof typeof GIWA_CHAINS]?.name || 'GIWA',
-            rpcUrls: [GIWA_CHAINS[chainId as keyof typeof GIWA_CHAINS]?.rpc || 'https://rpc.giwa.io'],
-            nativeCurrency: { name: 'GIWA', symbol: 'GIWA', decimals: 18 },
-            blockExplorerUrls: [GIWA_CHAINS[chainId as keyof typeof GIWA_CHAINS]?.explorer || ''],
-          }],
-        });
+        // Chain not added yet — ask the wallet to add it.
+        try {
+          await provider.request({
+            method: 'wallet_addEthereumChain',
+            params: [
+              {
+                chainId: `0x${chainId.toString(16)}`,
+                chainName: chain?.name ?? 'GIWA',
+                rpcUrls: [chain?.rpc ?? 'https://rpc.giwa.io'],
+                nativeCurrency: chain?.nativeCurrency ?? { name: 'GIWA', symbol: 'GIWA', decimals: 18 },
+                blockExplorerUrls: [chain?.explorer ?? ''],
+              },
+            ],
+          });
+        } catch {
+          // The wallet refused; the locally tracked chain still updates below.
+        }
       }
     }
     setState((prev) => ({ ...prev, chainId }));
   };
 
   const signAndSend = async (tx: Record<string, unknown>): Promise<string> => {
-    if (state.provider === 'metamask' && (window as any).ethereum) {
-      return await (window as any).ethereum.request({
-        method: 'eth_sendTransaction',
-        params: [tx],
-      });
+    // §12.2/§12.5 — a view-only session must never reach a signer, not even
+    // through the window.ethereum fallback (the extension may be installed).
+    if (state.provider === 'manual') {
+      throw new Error('View-only session: connect MetaMask or Blockmind Wallet before sending a transaction.');
     }
-    throw new Error('Transaction signing requires MetaMask or Blockmind Wallet');
+
+    const provider =
+      providerRef.current ?? ((window as unknown as { ethereum?: Eip1193Provider }).ethereum ?? null);
+
+    if (!provider) {
+      throw new Error('Connect MetaMask or Blockmind Wallet before sending a transaction.');
+    }
+
+    return (await provider.request({
+      method: 'eth_sendTransaction',
+      params: [tx],
+    })) as string;
   };
+
+  // Stop polling for the extension once it has been seen.
+  useEffect(() => {
+    if (blockmindInstalled) return;
+    return onProviderAvailable(() => setBlockmindInstalled(true));
+  }, [blockmindInstalled]);
 
   // Refresh balance when connected
   useEffect(() => {
@@ -251,11 +311,13 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   return (
     <WalletContext.Provider value={{
       ...state,
+      isViewOnly: state.provider === 'manual' && state.connected,
       connect,
       disconnect,
       switchChain,
       signAndSend,
       refreshBalance,
+      blockmindInstalled,
     }}>
       {children}
     </WalletContext.Provider>

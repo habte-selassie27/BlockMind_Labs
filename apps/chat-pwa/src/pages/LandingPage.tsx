@@ -160,6 +160,7 @@ export default function LandingPage() {
           <div className="landing-nav-links">
             <a href="#problem">Problem</a>
             <a href="#solution">Solution</a>
+            <a href="#giwa">GIWA-Native</a>
             <a href="#technology">Technology</a>
             <a href="#sdk">SDK</a>
             <a href="#market">Market</a>
@@ -299,6 +300,55 @@ export default function LandingPage() {
                 <li><span className="arrow">▶</span> One-command GIWA deployment</li>
               </ul>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── GIWA-NATIVE ──────────────────────────────────── */}
+      <section className="landing-section" id="giwa" style={{ background: 'linear-gradient(180deg, #0A0A09 0%, #1C1917 100%)', color: '#FAF9F5' }}>
+        <div className="landing-section-inner">
+          <div className="section-tag" style={{ background: 'rgba(217,122,92,0.15)', color: '#D97A5C', borderColor: 'rgba(217,122,92,0.22)' }}>GIWA-NATIVE</div>
+          <h2 className="section-title" style={{ color: '#FAF9F5' }}>
+            Not just on GIWA — <span style={{ color: '#D97A5C' }}>built for GIWA.</span>
+          </h2>
+          <p style={{ color: '#A8A29E', maxWidth: 720, fontSize: 15, lineHeight: 1.6, margin: '0 auto 32px', textAlign: 'center' }}>
+            GIWA Sepolia · 91342 · ~1s blocks · low fees · AA wallets · EIP-7702 · Dojang & UP ID via Playground · OP Stack bridge ~2.3 min · Explorer Blockscout
+          </p>
+          <div className="solution-grid">
+            {[
+              { icon: '🆔', title: 'UP ID + Dojang', desc: 'Resolve alice.up → 0x…, create your UP ID, verify Dojang & VerifiedTokens. Send to Sarah, not 0x…' },
+              { icon: '🌉', title: 'AI Bridge', desc: 'Bridge 0.1 ETH Sepolia → GIWA (OP Stack) with fee & time estimate, simulation, status poller' },
+              { icon: '⚡', title: 'Network Pulse', desc: 'Live GIWA stats: blocks, block time 1.02s, TPS 42, gas, verified 3.4k, AA 8.9k, success 98.7%' },
+              { icon: '🔍', title: 'Explorer Copilot', desc: 'Explain any 0x… — contract verification, holders, ABI, risk; ChatGPT for GIWA chain' },
+              { icon: '🐛', title: 'Debugger + Fix & Retry', desc: '❌ allowance insufficient → suggest 100 GIWA exact → simulate fix → retry' },
+              { icon: '⛽', title: 'Gas Intelligence', desc: 'Tiers slow/standard/fast with GIWA-optimized suggestion + batching savings ~1–2s' },
+            ].map(c => (
+              <div key={c.title} className="solution-card" style={{ background: 'rgba(255,255,255,0.04)', borderColor: 'rgba(255,255,255,0.08)' }}>
+                <div className="solution-card-header">
+                  <span className="solution-card-icon" style={{ background: 'rgba(217,122,92,0.12)', border: '1px solid rgba(217,122,92,0.18)' }}>{c.icon}</span>
+                  <h3 className="solution-card-title" style={{ color: '#FAF9F5' }}>{c.title}</h3>
+                </div>
+                <p style={{ fontSize: 13, color: '#A8A29E', lineHeight: 1.6, marginTop: 8 }}>{c.desc}</p>
+              </div>
+            ))}
+          </div>
+          <div className="solution-grid" style={{ marginTop: 18 }}>
+            {[
+              { icon: '🗺️', title: 'Batch Execute', desc: 'Approve→Deposit→Stake in one confirmation. Total gas 0.0021 GIWA, single Scam Shield' },
+              { icon: '🧭', title: 'Ecosystem Discovery', desc: 'What can I do on GIWA? → verified DeFi, NFTs, bridges, games — curated' },
+              { icon: '💼', title: 'Portfolio Intelligence', desc: 'GIWA + ERC20 balances, USD, 24h, AI: “largest exposure ETH 42%”' },
+              { icon: '👁️', title: 'Watch Mode', desc: 'Alert when balance <0.01, contract interaction, large transfer — Redis pub/sub' },
+              { icon: '📚', title: 'Address Book', desc: 'Sarah → alice.up → 0x… memory + UP ID resolution, always show resolved address' },
+              { icon: '🛡️', title: 'Verified Contract Mode', desc: '✓ verified source · simulation · risk LOW vs ⚠ UNVERIFIED HIGH' },
+            ].map(c => (
+              <div key={c.title} className="solution-card" style={{ background: 'rgba(255,255,255,0.04)', borderColor: 'rgba(255,255,255,0.08)' }}>
+                <div className="solution-card-header">
+                  <span className="solution-card-icon" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)' }}>{c.icon}</span>
+                  <h3 className="solution-card-title" style={{ color: '#FAF9F5' }}>{c.title}</h3>
+                </div>
+                <p style={{ fontSize: 13, color: '#A8A29E', lineHeight: 1.6, marginTop: 8 }}>{c.desc}</p>
+              </div>
+            ))}
           </div>
         </div>
       </section>

@@ -1,12 +1,13 @@
 /* ═══════════════════════════════════════════════════════════════
    BLOCKMIND DESIGN SYSTEM — CLAUDE × ELEVENLABS HYBRID
    Warm terracotta + precision minimalism
+   Production v2 — with dark chat tokens + motion system
    ═══════════════════════════════════════════════════════════════ */
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@500;600&display=swap');
 
 :root {
-  /* ── CANVAS — Warm Parchment ──────────────────────────────── */
+  /* ── CANVAS — Warm Parchment (Light) ──────────────────────── */
   --bg:              #FAF9F5;
   --bg-soft:         #F5F3EE;
   --bg-band:         #EDEBE4;
@@ -85,9 +86,72 @@
   --duration-fast:    150ms;
   --duration-normal:  200ms;
   --duration-slow:    300ms;
+  --duration-slower:  450ms;
   --ease-out:   cubic-bezier(0.0, 0.0, 0.2, 1);
   --ease-in:    cubic-bezier(0.4, 0.0, 1.0, 1);
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-smooth: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  --ease-emphasized: cubic-bezier(0.2, 0.0, 0, 1);
+
+  /* ── CHAT — Dark Theme Tokens (Claude × ElevenLabs) ───────── */
+  --chat-bg:                #0A0A09;
+  --chat-bg-soft:           #111110;
+  --chat-surface:           #1C1917;
+  --chat-surface-soft:      #23201E;
+  --chat-surface-hover:     #292524;
+  --chat-surface-active:    #2E2A27;
+  --chat-border:            rgba(255, 255, 255, 0.06);
+  --chat-border-soft:       rgba(255, 255, 255, 0.04);
+  --chat-border-strong:     rgba(255, 255, 255, 0.10);
+  --chat-border-hover:      rgba(255, 255, 255, 0.12);
+  --chat-text-primary:      #FAF9F5;
+  --chat-text-secondary:    #E5E3DC;
+  --chat-text-muted:        #A8A29E;
+  --chat-text-tertiary:     #777169;
+  --chat-text-faint:        #57534E;
+  --chat-text-accent:       #D97A5C;
+  --chat-brand:             #D97A5C;
+  --chat-brand-hover:       #E89070;
+  --chat-brand-active:      #C15F3C;
+  --chat-brand-soft:        rgba(217, 122, 92, 0.08);
+  --chat-brand-ring:        rgba(217, 122, 92, 0.15);
+  --chat-brand-glow:        0 0 24px rgba(217, 122, 92, 0.12);
+  --chat-success:           #6BCB77;
+  --chat-success-bg:        rgba(107, 203, 119, 0.08);
+  --chat-success-border:    rgba(107, 203, 119, 0.15);
+  --chat-warning:           #E8C07D;
+  --chat-warning-bg:        rgba(232, 192, 125, 0.08);
+  --chat-danger:            #E57373;
+  --chat-danger-bg:         rgba(229, 115, 115, 0.08);
+  --chat-danger-border:     rgba(229, 115, 115, 0.15);
+  --chat-info:              #7EB8E8;
+  --chat-overlay:           rgba(0, 0, 0, 0.6);
+  --chat-scrollbar-thumb:   rgba(255, 255, 255, 0.08);
+  --chat-scrollbar-hover:   rgba(255, 255, 255, 0.14);
+  --chat-input-bg:          rgba(255, 255, 255, 0.04);
+  --chat-input-border:      rgba(255, 255, 255, 0.08);
+  --chat-input-focus:       rgba(217, 122, 92, 0.35);
+  --chat-input-focus-bg:    rgba(255, 255, 255, 0.06);
+  --chat-msg-user-bg:       #1E1C1A;
+  --chat-msg-user-border:   rgba(255, 255, 255, 0.06);
+  --chat-msg-agent-text:    #E8E6E1;
+  --chat-code-bg:           rgba(255, 255, 255, 0.05);
+  --chat-code-border:       rgba(255, 255, 255, 0.07);
+  --chat-shadow-card:       0 1px 3px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.25);
+  --chat-shadow-elevated:   0 8px 32px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.3);
+  --chat-shadow-float:      0 16px 48px rgba(0, 0, 0, 0.5), 0 4px 16px rgba(0, 0, 0, 0.3);
+
+  /* ── LEGACY COMPAT (chat used these globals) ─────────────── */
+  --color-bg-base:          var(--chat-bg);
+  --color-bg-surface:       var(--chat-surface);
+  --color-bg-overlay:       #1C1917;
+  --color-text-primary:     var(--chat-text-primary);
+  --color-text-secondary:   var(--chat-text-muted);
+  --color-text-tertiary:    var(--chat-text-tertiary);
+  --color-border-default:   var(--chat-border);
+  --color-border-soft:      var(--chat-border-soft);
+  --color-amber-400:        var(--chat-brand);
+  --shadow-elevated:        var(--chat-shadow-elevated);
 }
 
 /* ═══════════════════════════════════════════════════════════════
