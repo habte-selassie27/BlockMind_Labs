@@ -19,3 +19,9 @@ out/
 *.egg-info/
 build/
 dist/
+
+# Rust (cargo)
+target/
+
+# Local tooling scratch
+.freebuff/
