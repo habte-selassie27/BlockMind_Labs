@@ -1,5 +1,5 @@
 import { getAllToolSchemas, getToolHandler } from './tools';
-import { ToolContext } from './types';
+import { ToolContext } from './tools';
 
 const LLM_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
 const MODEL = 'llama-3.3-70b-versatile';
@@ -48,7 +48,15 @@ export interface LLMResponse {
     name: string;
     arguments: Record<string, unknown>;
   }>;
+  // Set when the LLM was unreachable and a read-only shortcut was used instead.
+  // Callers must surface this to the user; a degraded answer must never be
+  // presented as if the model produced it.
+  degraded?: boolean;
 }
+
+export type CallLLMResult =
+  | { ok: true; response: LLMResponse }
+  | { ok: false; code: 'LLM_UNAVAILABLE'; reason: string };
 
 function buildToolDefinitions(
   toolSchemas: Array<{ name: string; description: string; parameters: Record<string, unknown> }>
@@ -68,11 +76,10 @@ export async function callLLM(
   toolSchemas: Array<{ name: string; description: string; parameters: Record<string, unknown> }>,
   _userId: string,
   _userTier: string
-): Promise<LLMResponse> {
+): Promise<CallLLMResult> {
   const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) {
-    // Fallback to keyword routing if no API key
-    return fallbackRouting(messages);
+    return { ok: false, code: 'LLM_UNAVAILABLE', reason: 'GROQ_API_KEY is not configured' };
   }
 
   const systemPrompt = buildSystemPrompt();
@@ -103,113 +110,76 @@ export async function callLLM(
     if (!response.ok) {
       const error = await response.text();
       console.error('LLM API error:', error);
-      return fallbackRouting(messages);
+      return {
+        ok: false,
+        code: 'LLM_UNAVAILABLE',
+        reason: `LLM provider returned ${response.status}`,
+      };
     }
 
     const data = await response.json();
     const choice = data.choices?.[0];
 
     if (!choice) {
-      return { content: 'No response from AI.' };
+      return { ok: true, response: { content: 'No response from AI.' } };
     }
 
-    // Check for tool calls
     if (choice.message?.tool_calls?.length > 0) {
       const toolCalls = choice.message.tool_calls.map((tc: any) => ({
         id: tc.id,
         name: tc.function.name,
         arguments: JSON.parse(tc.function.arguments || '{}'),
       }));
-      return { content: null, toolCalls };
+      return { ok: true, response: { content: null, toolCalls } };
     }
 
-    return { content: choice.message?.content || 'No response.' };
+    return { ok: true, response: { content: choice.message?.content || 'No response.' } };
   } catch (err) {
-    console.error('LLM call failed:', err);
-    return fallbackRouting(messages);
+    const reason = err instanceof Error ? err.message : 'unknown error';
+    console.error('LLM call failed:', reason);
+    return { ok: false, code: 'LLM_UNAVAILABLE', reason: `LLM request failed: ${reason}` };
   }
 }
 
-function fallbackRouting(
-  messages: Array<{ role: string; content: string }>
-): LLMResponse {
+// Read-only shortcut used only when the LLM is unreachable.
+//
+// This used to be `fallbackRouting`, which substring-matched the user's text and
+// returned hardcoded arguments — including a zero address as the transfer
+// recipient. That is indistinguishable, to the user and to any downstream
+// consumer, from a real parsed intent, so a request like "send 10 GIWA to 0xabc"
+// silently became a transfer to 0x0000...0000.
+//
+// It is now restricted to a single read-only tool, and it never invents an
+// argument: an empty `arguments` lets get_balance fall back to the connected
+// wallet. Anything requiring interpretation of user text is refused rather than
+// guessed, because a wrong answer that looks right is worse than no answer.
+function readOnlyShortcut(messages: Array<{ role: string; content: string }>): LLMResponse | null {
   const lastUserMsg = [...messages].reverse().find((m) => m.role === 'user');
-  if (!lastUserMsg) {
-    return { content: 'I need a message to process.' };
-  }
+  if (!lastUserMsg) return null;
 
   const text = lastUserMsg.content.toLowerCase();
 
-  if (text.includes('balance') || text.includes('how much')) {
+  const isBalanceQuery =
+    text.includes('balance') || text.includes('how much do i') || text.includes('how much');
+
+  if (isBalanceQuery) {
     return {
       content: null,
-      toolCalls: [{
-        id: `call_${Date.now()}`,
-        name: 'get_balance',
-        arguments: { token: 'GIWA' },
-      }],
+      degraded: true,
+      toolCalls: [
+        {
+          id: `fallback_${Date.now()}`,
+          name: 'get_balance',
+          arguments: {},
+        },
+      ],
     };
   }
 
-  if (text.includes('send') || text.includes('transfer')) {
-    return {
-      content: null,
-      toolCalls: [{
-        id: `call_${Date.now()}`,
-        name: 'transfer_token',
-        arguments: { token: 'GIWA', amount: '10', to: '0x0000000000000000000000000000000000000000' },
-      }],
-    };
-  }
-
-  if (text.includes('swap')) {
-    return {
-      content: null,
-      toolCalls: [{
-        id: `call_${Date.now()}`,
-        name: 'swap_tokens',
-        arguments: { from_token: 'ETH', to_token: 'USDT', amount: '1' },
-      }],
-    };
-  }
-
-  if (text.includes('monitor') || text.includes('watch')) {
-    return {
-      content: null,
-      toolCalls: [{
-        id: `call_${Date.now()}`,
-        name: 'monitor_address',
-        arguments: {},
-      }],
-    };
-  }
-
-  if (text.includes('contract') || text.includes('risk') || text.includes('scam') || text.includes('safe')) {
-    return {
-      content: null,
-      toolCalls: [{
-        id: `call_${Date.now()}`,
-        name: 'check_contract_risk',
-        arguments: { address: '0x0000000000000000000000000000000000000000' },
-      }],
-    };
-  }
-
-  if (text.includes('analyze') || text.includes('activity') || text.includes('history') || text.includes('transaction')) {
-    return {
-      content: null,
-      toolCalls: [{
-        id: `call_${Date.now()}`,
-        name: 'monitor_address',
-        arguments: {},
-      }],
-    };
-  }
-
-  return {
-    content: `I understand you want to: "${lastUserMsg.content}". I can help with that. Could you provide more details?`,
-  };
+  return null;
 }
+
+export { readOnlyShortcut };
 
 export async function executeTool(
   toolName: string,

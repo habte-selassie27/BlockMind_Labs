@@ -1,6 +1,6 @@
 import crypto from 'crypto';
 import { getToolHandler, getToolDefinition } from './tools';
-import { ToolContext } from './types';
+import { ToolContext } from './tools';
 
 export interface Session {
   id: string;

@@ -10,7 +10,7 @@ import {
   removePendingConfirmation,
 } from './session';
 import { getToolDefinition, getAllToolSchemas } from './tools';
-import { buildSystemPrompt, callLLM, executeTool } from './agent';
+import { buildSystemPrompt, callLLM, executeTool, readOnlyShortcut } from './agent';
 import { ToolContext } from './tools';
 
 const router: Router = Router();
@@ -56,7 +56,33 @@ router.post('/execute', async (req: Request, res: Response) => {
 
     // Call LLM
     const toolSchemas = getAllToolSchemas();
-    const llmResponse = await callLLM(messages, toolSchemas, userId, userTier);
+    const llmResult = await callLLM(messages, toolSchemas, userId, userTier);
+
+    let llmResponse;
+
+    if (!llmResult.ok) {
+      // The model is unreachable. A read-only shortcut may still answer a
+      // balance query, but only with arguments taken from the session — never
+      // invented ones. Anything needing real parsing is refused outright.
+      const shortcut = readOnlyShortcut(messages);
+
+      if (!shortcut) {
+        return res.status(503).json({
+          error: {
+            code: 'LLM_UNAVAILABLE',
+            message:
+              'The AI model is unavailable, so this request was not interpreted. ' +
+              'No action was taken.',
+            details: { reason: llmResult.reason, degraded: false },
+            request_id: requestId,
+          },
+        });
+      }
+
+      llmResponse = shortcut;
+    } else {
+      llmResponse = llmResult.response;
+    }
 
     // No tool calls — return text response
     if (!llmResponse.toolCalls || llmResponse.toolCalls.length === 0) {
@@ -155,7 +181,7 @@ router.post('/execute', async (req: Request, res: Response) => {
       .map((t) => `${t.tool}: ${JSON.stringify(t.result)}`)
       .join('\n');
 
-    const finalResponse = await callLLM(
+    const summaryResult = await callLLM(
       [
         { role: 'system', content: buildSystemPrompt() },
         { role: 'system', content: `User's wallet address: ${userWallet}. Chain: GIWA (${userChainId}).` },
@@ -167,11 +193,20 @@ router.post('/execute', async (req: Request, res: Response) => {
       userTier
     );
 
-    const responseContent = finalResponse.content || `Done! Results: ${toolResultsSummary}`;
+    const degradedNotice = llmResponse.degraded
+      ? 'Note: the AI model was unavailable, so this answer came from a read-only ' +
+        'shortcut and was not interpreted by the model.\n\n'
+      : '';
+
+    const responseContent =
+      (summaryResult.ok ? summaryResult.response.content : null) ||
+      `Done! Results: ${toolResultsSummary}`;
+
+    const finalContent = degradedNotice + responseContent;
 
     addMessage(session.id, {
       role: 'assistant',
-      content: responseContent,
+      content: finalContent,
       timestamp: Math.floor(Date.now() / 1000),
       toolCalls: llmResponse.toolCalls.map((tc) => ({
         tool: tc.name,
@@ -190,9 +225,10 @@ router.post('/execute', async (req: Request, res: Response) => {
       request_id: requestId,
       response: {
         type: 'text',
-        content: responseContent,
+        content: finalContent,
         tool_calls: executedTools,
       },
+      degraded: llmResponse.degraded === true,
       requires_confirmation: false,
     });
   } catch (err) {
