@@ -9,7 +9,7 @@ import {
   deleteWebhook,
 } from './store';
 
-const router = Router();
+const router: Router = Router();
 
 // Health check
 router.get('/health', (_req: Request, res: Response) => {
