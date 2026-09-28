@@ -32,55 +32,28 @@ async fn health() -> Json<HealthResponse> {
 }
 
 async fn sign(
-    State(state): State<Arc<AppState>>,
-    Json(req): Json<SignRequest>,
+    State(_state): State<Arc<AppState>>,
+    Json(_req): Json<SignRequest>,
 ) -> Result<Json<SignResponse>, (StatusCode, Json<Value>)> {
-    // Validate user_id_hash matches
-    let computed_hash = hash_user_id(&req.user_id_hash);
-    if computed_hash != req.user_id_hash {
-        return Err((
-            StatusCode::BAD_REQUEST,
-            Json(json!({ "error": "Invalid user_id_hash" })),
-        ));
-    }
-
-    // Check if key exists
-    if !state.key_store.has_key(&req.user_id_hash).await {
-        return Err((
-            StatusCode::NOT_FOUND,
-            Json(json!({ "error": "No key found for this user" })),
-        ));
-    }
-
-    // Get the private key ( decrypted in memory only, never logged)
-    let _private_key = state.key_store.get_key(&req.user_id_hash).await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": e }))))?;
-
-    // In production: sign the transaction with the private key
-    // For now, return a mock signed transaction
-    let tx_hash = format!("0x{:064x}", rand::random::<u64>());
-    let nonce = req.tx_request.nonce.unwrap_or(0);
-
-    let response = SignResponse {
-        signed_tx: format!("0x{}", hex::encode(b"mock_signed_tx")),
-        tx_hash: tx_hash.clone(),
-        nonce_used: nonce,
-    };
-
-    // Audit log (no key material!)
-    let audit = AuditRecord {
-        user_id_hash: req.user_id_hash,
-        chain_id: req.tx_request.chain_id,
-        tx_hash,
-        timestamp: std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_secs(),
-    };
-
-    state.audit_log.write().await.push(audit);
-
-    Ok(Json(response))
+    // Transaction signing is NOT implemented. This crate links no secp256k1
+    // implementation (see Cargo.toml: axum, tokio, serde, sha2, aes-gcm, rand,
+    // hex only), so it is structurally incapable of producing a signature.
+    //
+    // It previously returned a hardcoded "mock_signed_tx" alongside a random
+    // hash, which callers surfaced to end users as a confirmed on-chain
+    // transfer. See apps/agent-runtime/src/routes.ts, which fabricated a
+    // matching hash on the way out. A fabricated success is more dangerous than
+    // an honest failure, so this endpoint now refuses.
+    //
+    // Failing here, before any key material is decrypted, is deliberate.
+    Err((
+        StatusCode::NOT_IMPLEMENTED,
+        Json(json!({
+            "error": "signing_not_implemented",
+            "message": "This signer cannot sign transactions: no secp256k1 implementation is linked. No signature was produced, no private key was decrypted, and no transaction was submitted.",
+            "signed": false,
+        })),
+    ))
 }
 
 async fn store_key(

@@ -11,9 +11,9 @@ import {
 } from './session';
 import { getToolDefinition, getAllToolSchemas } from './tools';
 import { buildSystemPrompt, callLLM, executeTool } from './agent';
-import { ToolContext } from './types';
+import { ToolContext } from './tools';
 
-const router = Router();
+const router: Router = Router();
 
 // POST /agent/execute — main entry point
 router.post('/execute', async (req: Request, res: Response) => {
@@ -244,12 +244,43 @@ router.post('/confirm', async (req: Request, res: Response) => {
     });
   }
 
-  const session = getSession(pending.sessionId);
-  const txHash = `0x${Date.now().toString(16)}${Math.random().toString(16).slice(2, 10)}`;
+  // A transaction hash is only ever reported if a real one came back from the
+  // signer. It is never synthesised here: a fabricated hash reads as a confirmed
+  // on-chain transfer to the user and to any downstream indexer.
+  const data = (result.data ?? {}) as Record<string, unknown>;
+  const txHash =
+    typeof data.tx_hash === 'string'
+      ? data.tx_hash
+      : typeof data.hash === 'string'
+        ? data.hash
+        : null;
+
+  if (!txHash) {
+    addMessage(pending.sessionId, {
+      role: 'assistant',
+      content:
+        `I could not execute ${pending.toolName}. Transaction signing is not implemented ` +
+        `in wallet-signer, so nothing was submitted to the chain and no funds moved. ` +
+        `No transaction hash exists for this request.`,
+      timestamp: Math.floor(Date.now() / 1000),
+    });
+
+    return res.status(500).json({
+      error: {
+        code: 'INTERNAL_ERROR',
+        message:
+          'Transaction signing is not implemented. The tool ran but produced no ' +
+          'transaction hash, so nothing was submitted. This is a known gap, not a ' +
+          'network or user error.',
+        details: { tool: pending.toolName, submitted: false },
+        request_id: `req_${Date.now().toString(36)}`,
+      },
+    });
+  }
 
   addMessage(pending.sessionId, {
     role: 'assistant',
-    content: `Done! Your ${pending.toolName} has been submitted. Transaction: ${txHash}`,
+    content: `Your ${pending.toolName} has been submitted. Transaction: ${txHash}`,
     timestamp: Math.floor(Date.now() / 1000),
   });
 
@@ -263,7 +294,7 @@ router.post('/confirm', async (req: Request, res: Response) => {
     },
     transaction: {
       hash: txHash,
-      chain_id: 9134,
+      chain_id: toolContext.chainId,
       from: toolContext.walletAddress,
       submitted_at: Math.floor(Date.now() / 1000),
     },

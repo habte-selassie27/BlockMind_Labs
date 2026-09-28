@@ -62,7 +62,7 @@ User types: "Send 10 GIWA to Alice"
 | P1-10 | GASOK milestone report #1 | 2025-07-20 |
 | — | All foundation docs (PLAN, SYSTEM, ARCHITECTURE, TEST, API, AGENTS) | 2025-07-20 |
 
-**Phase 1: Foundation — 100% Complete**
+**Phase 1: Foundation — complete.** Docs and scaffold are real. Note P1-04 is keyword/regex matching, not the fine-tuned local LLM specified in `PLAN.md`.
 
 ---
 
@@ -78,7 +78,17 @@ User types: "Send 10 GIWA to Alice"
 | P2-04 | Live TX test script (GIWA Sepolia, viem + wallet-signer) | 2025-07-21 |
 | P2-05 | SDK v0.1 (@blockmind/sdk, 10 API methods, GIWA chain config) | 2025-07-21 |
 
-**Phase 2: Core Pipeline — 100% Complete** (P2-04 needs funded wallet to execute)
+**Phase 2: Core Pipeline — SCAFFOLDED, not complete.** The write path does not work:
+- `wallet-signer` returns a hardcoded `mock_signed_tx`. It has no secp256k1/k256/alloy
+  dependency, so it is structurally incapable of signing.
+- `agent-runtime/src/routes.ts` fabricated a transaction hash from `Date.now()` +
+  `Math.random()` and returned `status: 'submitted'`. That fake success has been removed;
+  the confirm path now returns an explicit not-implemented error.
+- Read-only tools (balance, explorer, gas, portfolio) do make live RPC calls and work.
+- `registry.ts` (~30 tools, 969 lines) is imported by nothing. The live registry is the
+  7 tools in `tool-handlers.ts`, 2 of which are no-ops.
+- P2-01 claims LangChain orchestration — `langchain` is in `package.json`, never imported.
+  P2-02 claims viem — never imported; the two mentions are comments saying "would use viem".
 
 ---
 
@@ -92,7 +102,16 @@ User types: "Send 10 GIWA to Alice"
 | P3-02 | API gateway (Fastify, JWT auth, rate-limit, proxy to 4 services) | 2025-07-21 |
 | P3-03 | Pipeline wiring (full connection map + integration test) | 2025-07-21 |
 
-**Phase 3: Full Stack — 100% Complete**
+**Phase 3: Full Stack — NOT COMPLETE.** The documented Intent → Agent → Web3 pipeline is not wired.
+- `agent-runtime` never calls `intent-service`. `INTENT_SERVICE_URL` is declared in the dead
+  `registry.ts` and never used. The PWA posts straight to `/api/agent/execute`.
+- `memory-service`, `analytics-service` and `notification-service` are called by nothing.
+- P3-02 claims "JWT auth" — the payload is base64-decoded and never signature-verified
+  (`api-gateway/src/auth.ts`). Forgery is trivial.
+- P3-03 claims an integration test; `tests/integration/test_full_pipeline.py` posts to
+  `/intent/parse` with `{"input": ...}` while the real route is `/v1/intent/parse` with
+  `{"message": ...}`. It 404s. Another test asserts `status_code in (200, 502, 504)`, so it
+  passes when the server is broken.
 
 ---
 
@@ -108,7 +127,15 @@ User types: "Send 10 GIWA to Alice"
 | P4-04 | Docker Compose wired (all 10 services + 4 data stores) | 2025-07-21 |
 | P4-05 | Performance benchmark script (intent-to-TX latency) | 2025-07-21 |
 
-**Phase 4: Remaining Services — 100% Complete**
+**Phase 4: Remaining Services — SCAFFOLDED, not complete.**
+- `admin-service` has **zero** authentication on `POST/PATCH/DELETE /users`.
+- `notification-service` stores notifications in an in-memory `Map`; webhook delivery is
+  never called. Zero tests.
+- `sdk-proxy` tool authorization is an empty block (`// For now, allow all and meter`),
+  and key minting/usage endpoints are unauthenticated. `vitest` is in its `test` script but
+  not in its devDependencies, so its 5 tests never run.
+- `analytics-service` is not routed by the gateway and has no callers.
+- `docker-compose.test.yml`, referenced by `pnpm docker:test`, does not exist.
 
 ---
 
@@ -118,18 +145,22 @@ User types: "Send 10 GIWA to Alice"
 
 | Service | Lang | Port | Status | Role |
 |---|---|---|---|---|
-| api-gateway | Node.js/Fastify | 3000 | 🟢 Implemented | Auth, rate-limit, routing to 4 services |
-| intent-service | Python/FastAPI | 8001 | 🟢 Implemented | NL parsing, intent classification (44 tests) |
-| agent-runtime | Node.js/Express+LangChain | 8002 | 🟢 Implemented | LLM orchestration, tool dispatch (6 tools, session mgmt) |
-| web3-middleware | Node.js/Fastify | 8003 | 🟢 Implemented | RPC abstraction, TX building, simulation |
-| wallet-signer | Rust/Axum | 8004 | 🟢 Implemented | Key management, signing, audit log |
-| memory-service | Python/FastAPI | 8005 | 🟢 Implemented | Agent memory, context loading, 3 stores |
-| analytics-service | Python/FastAPI | 8006 | 🟢 Implemented | Chain analytics, NL portfolio summaries, event tracking |
-| notification-service | Node.js/Express | 8007 | 🟢 Implemented | Notifications, webhooks, TX alerts |
-| sdk-proxy | Node.js/Fastify | 8008 | 🟢 Implemented | SDK metering, auth, version routing |
-| admin-service | Node.js/Express | 8009 | 🟢 Implemented | User management, system health dashboard |
+| api-gateway | Node.js/Fastify | 3000 | 🟡 Scaffolded | Auth (unverified JWT), rate-limit, proxy to 4 services |
+| intent-service | Python/FastAPI | 8001 | 🟢 Implemented | NL parsing, intent classification (62 tests). Keyword-based, not ML |
+| agent-runtime | Node.js/Express | 8002 | 🟡 Scaffolded | Real Groq LLM call + 7 tools, but no ReAct loop; 5 fall through to substring matching |
+| web3-middleware | Node.js/Fastify | 8003 | 🟡 Scaffolded | Reads work (explorer, gas, balance). Build/simulate/submit do not |
+| wallet-signer | Rust/Axum | 8004 | 🔴 Cannot sign | Returns `mock_signed_tx`. No crypto dependency. **Do not fund** |
+| memory-service | Python/FastAPI | 8005 | 🟡 Scaffolded | Redis/Weaviate/PG work, but GraphQL is injectable and it has no callers |
+| analytics-service | Python/FastAPI | 8006 | 🟡 Scaffolded | Works in isolation; not routed by the gateway, no callers |
+| notification-service | Node.js/Express | 8007 | 🔴 In-memory only | `Map` storage, webhook delivery never invoked, zero tests |
+| sdk-proxy | Node.js/Fastify | 8008 | 🟡 Scaffolded | Metering works; tool authorization is a no-op; key endpoints unauthenticated |
+| admin-service | Node.js/Express | 8009 | 🔴 Unauthenticated | **User CRUD with no auth. Do not expose** |
+| wallet-extension | TypeScript/MV3 | client | 🟢 Implemented | **Best code in the repo** — AES vault, safety gate, approval blocking, 132 tests. Not in the AGENTS.md service map |
 
-**Status key:** 🔴 Not started · 🟡 Scaffolded · 🟢 Implemented · ✅ Tested
+**Status key:** 🔴 Broken/unsafe · 🟡 Scaffolded · 🟢 Implemented · ✅ Tested
+
+> The single best-engineered component in this repo is `apps/wallet-extension`, and it is
+> absent from the service map, the phase tables, and ADR-011's description of the system.
 
 ### Data Stores
 
